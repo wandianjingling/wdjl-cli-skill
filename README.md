@@ -2,7 +2,7 @@
 
 让 AI Agent 能够通过 CLI 命令操控万店精灵，实现电商商品采集、上货、店铺管理等自动化操作。
 
-仓库地址：https://gitee.com/wdjl/wdjl-skill
+仓库地址：https://github.com/wandianjingling/wdjl-cli-skill
 
 ---
 
