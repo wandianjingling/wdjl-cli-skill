@@ -1,0 +1,370 @@
+{
+  "app": "wdjlcli",
+  "version": "1.0.0",
+  "description": "万店精灵命令行工具，用于电商多平台店铺管理、商品发布、配置管理等操作",
+  "commands": [
+    {
+      "name": "login",
+      "description": "登录到万店精灵平台",
+      "type": "auth",
+      "requiresLogin": false,
+      "options": [
+        {
+          "name": "username",
+          "short": "u",
+          "long": "username",
+          "type": "string",
+          "required": false,
+          "description": "用户名，如不提供则交互式提示输入"
+        },
+        {
+          "name": "password",
+          "short": "p",
+          "long": "password",
+          "type": "string",
+          "required": false,
+          "description": "密码，如不提供则交互式提示输入（隐藏输入）"
+        },
+        {
+          "name": "save",
+          "short": null,
+          "long": "save",
+          "type": "bool",
+          "required": false,
+          "description": "是否保存密码到本地凭证文件"
+        },
+        {
+          "name": "auto-login",
+          "short": null,
+          "long": "auto-login",
+          "type": "bool",
+          "required": false,
+          "description": "保存凭证并设置自动登录，下次启动时自动登录"
+        }
+      ],
+      "examples": [
+        "wdjlcli login",
+        "wdjlcli login -u admin -p 123456",
+        "wdjlcli login -u admin -p 123456 --save",
+        "wdjlcli login -u admin -p 123456 --auto-login"
+      ]
+    },
+    {
+      "name": "logout",
+      "description": "退出登录，清除当前登录会话",
+      "type": "auth",
+      "requiresLogin": false,
+      "options": [],
+      "examples": [
+        "wdjlcli logout"
+      ]
+    },
+    {
+      "name": "status",
+      "description": "查看当前登录状态，显示用户ID、用户名、会员版本、账号状态、管理店铺数等信息",
+      "type": "auth",
+      "requiresLogin": false,
+      "options": [],
+      "examples": [
+        "wdjlcli status"
+      ]
+    },
+    {
+      "name": "shop list",
+      "description": "列出所有已添加的店铺，高亮显示当前选中的店铺",
+      "type": "shop",
+      "requiresLogin": true,
+      "options": [],
+      "examples": [
+        "wdjlcli shop list"
+      ]
+    },
+    {
+      "name": "shop add",
+      "description": "添加新店铺。支持淘宝、天猫、拼多多、抖音、京东、阿里巴巴、快手等平台。默认使用二维码控制台登录模式，支持使用浏览器窗口模式登录",
+      "type": "shop",
+      "requiresLogin": true,
+      "arguments": [
+        {
+          "name": "platform",
+          "position": 0,
+          "type": "string",
+          "required": false,
+          "description": "平台名称，支持: taobao/tb, tmall, pdd/拼多多, douyin/抖音, jd/京东, ali/alibaba/阿里巴巴, kuaishou/快手。如不提供则交互式提示选择"
+        }
+      ],
+      "options": [
+        {
+          "name": "browser",
+          "short": null,
+          "long": "browser",
+          "type": "bool",
+          "required": false,
+          "description": "使用浏览器窗口模式登录（默认使用二维码控制台模式）"
+        }
+      ],
+      "examples": [
+        "wdjlcli shop add taobao",
+        "wdjlcli shop add pdd --browser",
+        "wdjlcli shop add douyin"
+      ]
+    },
+    {
+      "name": "shop remove",
+      "description": "移除指定店铺。执行后会列出所有店铺供用户选择要移除的店铺ID",
+      "type": "shop",
+      "requiresLogin": true,
+      "options": [],
+      "examples": [
+        "wdjlcli shop remove"
+      ]
+    },
+    {
+      "name": "shop switch",
+      "description": "切换当前操作的店铺。切换后，后续操作（如发布商品、配置管理）将针对该店铺执行",
+      "type": "shop",
+      "requiresLogin": true,
+      "arguments": [
+        {
+          "name": "shopid",
+          "position": 0,
+          "type": "string",
+          "required": true,
+          "description": "要切换到的目标店铺ID"
+        }
+      ],
+      "options": [],
+      "examples": [
+        "wdjlcli shop switch shop001"
+      ]
+    },
+    {
+      "name": "config list",
+      "description": "列出所有配置项，可按店铺筛选",
+      "type": "config",
+      "requiresLogin": true,
+      "options": [
+        {
+          "name": "shop",
+          "short": "s",
+          "long": "shopid",
+          "type": "string",
+          "required": false,
+          "description": "店铺ID，用于筛选该店铺的配置项。为空则显示全局配置"
+        }
+      ],
+      "examples": [
+        "wdjlcli config list",
+        "wdjlcli config list -s shop001"
+      ]
+    },
+    {
+      "name": "config get",
+      "description": "获取指定配置项的值",
+      "type": "config",
+      "requiresLogin": true,
+      "options": [
+        {
+          "name": "key",
+          "short": "k",
+          "long": "key",
+          "type": "string",
+          "required": true,
+          "description": "配置项名称（键名）"
+        },
+        {
+          "name": "shop",
+          "short": "s",
+          "long": "shopid",
+          "type": "string",
+          "required": false,
+          "description": "店铺ID，用于获取店铺级别的配置项。为空则获取全局配置"
+        }
+      ],
+      "examples": [
+        "wdjlcli config get -k uploadDelay",
+        "wdjlcli config get -k priceRate -s shop001"
+      ]
+    },
+    {
+      "name": "config set",
+      "description": "设置配置项的值",
+      "type": "config",
+      "requiresLogin": true,
+      "options": [
+        {
+          "name": "key",
+          "short": "k",
+          "long": "key",
+          "type": "string",
+          "required": true,
+          "description": "配置项名称（键名）"
+        },
+        {
+          "name": "value",
+          "short": "v",
+          "long": "value",
+          "type": "string",
+          "required": true,
+          "description": "配置项的值"
+        },
+        {
+          "name": "shop",
+          "short": "s",
+          "long": "shopid",
+          "type": "string",
+          "required": false,
+          "description": "店铺ID，用于设置店铺级别的配置项。为空则设置全局配置"
+        }
+      ],
+      "examples": [
+        "wdjlcli config set -k uploadDelay -v 30",
+        "wdjlcli config set -k priceRate -v 1.2 -s shop001"
+      ]
+    },
+    {
+      "name": "publish links",
+      "description": "发布商品（通过URL采集上货）。从指定的商品URL采集商品信息并创建上货任务到目标店铺",
+      "type": "publish",
+      "requiresLogin": true,
+      "options": [
+        {
+          "name": "url",
+          "short": "u",
+          "long": "url",
+          "type": "string",
+          "required": false,
+          "description": "货源商品URL地址，如不提供则交互式提示输入"
+        },
+        {
+          "name": "shop",
+          "short": "s",
+          "long": "shopid",
+          "type": "string",
+          "required": false,
+          "description": "目标店铺ID，如不提供则显示店铺列表供选择"
+        }
+      ],
+      "examples": [
+        "wdjlcli publish links -u https://detail.tmall.com/item.htm?id=xxx",
+        "wdjlcli publish links -u https://item.taobao.com/item.htm?id=xxx -s shop001"
+      ]
+    },
+    {
+      "name": "publish list",
+      "description": "显示指定店铺的上传商品列表，包含商品状态（成功/失败/处理中）、商品ID等信息",
+      "type": "publish",
+      "requiresLogin": true,
+      "options": [
+        {
+          "name": "shop",
+          "short": "s",
+          "long": "shopid",
+          "type": "string",
+          "required": false,
+          "description": "店铺ID，如不提供则显示店铺列表供选择"
+        }
+      ],
+      "examples": [
+        "wdjlcli publish list",
+        "wdjlcli publish list -s shop001"
+      ]
+    },
+    {
+      "name": "publish datapacket",
+      "description": "导入数据包批量上货。支持单个txt文件、批量txt文件、整个目录（含子目录）的批量导入",
+      "type": "publish",
+      "requiresLogin": true,
+      "arguments": [
+        {
+          "name": "paths",
+          "position": 0,
+          "type": "string[]",
+          "required": true,
+          "description": "数据包文件路径或目录路径，支持传入多个路径（空格分隔），支持.txt格式的数据包文件"
+        }
+      ],
+      "options": [
+        {
+          "name": "shop",
+          "short": "s",
+          "long": "shopid",
+          "type": "string",
+          "required": false,
+          "description": "目标店铺ID，如不提供则显示店铺列表供选择"
+        }
+      ],
+      "examples": [
+        "wdjlcli publish datapacket ./goods.txt",
+        "wdjlcli publish datapacket ./goods1.txt ./goods2.txt -s shop001",
+        "wdjlcli publish datapacket ./data_packets/"
+      ]
+    },
+    {
+      "name": "subscribe add",
+      "description": "订购权益。执行后在控制台打印官方定价页面链接，需用户自行在浏览器中打开完成订购",
+      "type": "subscribe",
+      "requiresLogin": true,
+      "options": [],
+      "examples": [
+        "wdjlcli subscribe add"
+      ]
+    }
+  ],
+  "globalOptions": [
+    {
+      "name": "no-autologin",
+      "long": "no-autologin",
+      "type": "bool",
+      "description": "跳过自动登录流程，不尝试使用已保存的凭证自动登录"
+    },
+    {
+      "name": "repl",
+      "long": "repl",
+      "type": "bool",
+      "description": "强制进入交互式REPL模式，即使提供了命令参数"
+    },
+    {
+      "name": "daemon",
+      "long": "daemon",
+      "type": "bool",
+      "description": "以守护进程模式启动，启动命名管道服务供其他wdjlcli实例通信"
+    }
+  ],
+  "platforms": {
+    "description": "shop add 命令支持的电商平台及其ID映射",
+    "mapping": {
+      "taobao": { "id": 1, "aliases": ["tb"] },
+      "tmall": { "id": 2, "aliases": [] },
+      "pdd": { "id": 3, "aliases": ["拼多多"] },
+      "douyin": { "id": 4, "aliases": ["抖音"] },
+      "jd": { "id": 5, "aliases": ["京东"] },
+      "kuaishou": { "id": 6, "aliases": ["快手"] },
+      "ali": { "id": 8, "aliases": ["alibaba", "阿里巴巴"] }
+    }
+  },
+  "executionModes": {
+    "description": "wdjlcli 支持三种运行模式",
+    "modes": [
+      {
+        "name": "普通模式",
+        "description": "直接执行命令后退出，如 wdjlcli login -u admin -p 123"
+      },
+      {
+        "name": "REPL交互模式",
+        "description": "无参数启动或使用 --repl 标志进入交互式命令行，输入 exit/quit 退出"
+      },
+      {
+        "name": "Daemon守护模式",
+        "description": "使用 --daemon 标志启动后台常驻服务，通过命名管道接收并执行命令，其他wdjlcli实例自动通过管道转发命令"
+      }
+    ]
+  },
+  "commandCategories": {
+    "auth": { "description": "身份认证相关命令", "commands": ["login", "logout", "status"] },
+    "shop": { "description": "店铺管理相关命令", "commands": ["shop list", "shop add", "shop remove", "shop switch"] },
+    "config": { "description": "配置管理相关命令", "commands": ["config list", "config get", "config set"] },
+    "publish": { "description": "商品发布相关命令", "commands": ["publish links", "publish list", "publish datapacket"] },
+    "subscribe": { "description": "权益订购相关命令", "commands": ["subscribe add"] }
+  }
+}
