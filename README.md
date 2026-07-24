@@ -40,19 +40,19 @@
 ### Qoder IDE
 
 ```bash
-git clone https://gitee.com/wdjl/wdjl-skill.git .qoder/skills/wdjl-cli-skill
+git clone https://github.com/wandianjingling/wdjl-cli-skill.git .qoder/skills/wdjl-cli-skill
 ```
 
 ### GitHub Copilot
 
 ```bash
-git clone https://gitee.com/wdjl/wdjl-skill.git .github/skills/wdjl-cli-skill
+git clone https://github.com/wandianjingling/wdjl-cli-skill.git .github/skills/wdjl-cli-skill
 ```
 
 ### Claude Code
 
 ```bash
-git clone https://gitee.com/wdjl/wdjl-skill.git .claude/skills/wdjl-cli-skill
+git clone https://github.com/wandianjingling/wdjl-cli-skill.git .claude/skills/wdjl-cli-skill
 ```
 
 ## 文件结构
