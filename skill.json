@@ -1,6 +1,6 @@
 {
   "app": "wdjlcli",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "万店精灵命令行工具，用于电商多平台店铺管理、商品发布、配置管理等操作",
   "commands": [
     {
@@ -272,7 +272,7 @@
     },
     {
       "name": "publish datapacket",
-      "description": "导入数据包批量上货。支持单个txt文件、批量txt文件、整个目录（含子目录）的批量导入",
+      "description": "导入数据包批量上货。支持单个文件、批量文件、目录及子目录递归扫描；数据包格式按内容自动识别，不限扩展名",
       "type": "publish",
       "requiresLogin": true,
       "arguments": [
@@ -281,7 +281,7 @@
           "position": 0,
           "type": "string[]",
           "required": true,
-          "description": "数据包文件路径或目录路径，支持传入多个路径（空格分隔），支持.txt格式的数据包文件"
+          "description": "数据包文件路径或目录路径，支持传入多个路径（空格分隔）；目录递归扫描所有子目录，二进制文件自动跳过"
         }
       ],
       "options": [
