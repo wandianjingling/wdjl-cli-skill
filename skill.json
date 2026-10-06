@@ -1,6 +1,6 @@
 {
   "app": "wdjlcli",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "万店精灵命令行工具，用于电商多平台店铺管理、商品发布、配置管理等操作",
   "commands": [
     {
@@ -301,6 +301,59 @@
       ]
     },
     {
+      "name": "publish transfer",
+      "description": "店铺互传上货（店铺搬家）。将来源店铺的在售商品复制上传到目标店铺，来源店铺与目标店铺不能相同",
+      "type": "publish",
+      "requiresLogin": true,
+      "options": [
+        {
+          "name": "sourceshopid",
+          "short": null,
+          "long": "sourceshopid",
+          "type": "string",
+          "required": false,
+          "description": "来源店铺ID（从该店铺复制商品），如不提供则交互式选择"
+        },
+        {
+          "name": "shop",
+          "short": "s",
+          "long": "shopid",
+          "type": "string",
+          "required": false,
+          "description": "目标店铺ID（商品上传到该店铺），如不提供则交互式选择"
+        },
+        {
+          "name": "goodsids",
+          "short": "g",
+          "long": "goodsids",
+          "type": "string",
+          "required": false,
+          "description": "来源店铺商品ID，多个用逗号分隔；不指定则查询来源店铺在售商品列表后交互输入"
+        },
+        {
+          "name": "name",
+          "short": "n",
+          "long": "name",
+          "type": "string",
+          "required": false,
+          "description": "按商品名称搜索来源店铺在售商品"
+        },
+        {
+          "name": "page",
+          "short": null,
+          "long": "page",
+          "type": "int",
+          "required": false,
+          "description": "来源店铺在售商品列表页码（默认1，每页20条）"
+        }
+      ],
+      "examples": [
+        "wdjlcli publish transfer --sourceshopid shopA --shopid shopB",
+        "wdjlcli publish transfer --sourceshopid shopA -s shopB -g 123456789,987654321",
+        "wdjlcli publish transfer --sourceshopid shopA -s shopB -n 连衣裙 --page 2"
+      ]
+    },
+    {
       "name": "subscribe add",
       "description": "订购权益。执行后在控制台打印官方定价页面链接，需用户自行在浏览器中打开完成订购",
       "type": "subscribe",
@@ -364,7 +417,7 @@
     "auth": { "description": "身份认证相关命令", "commands": ["login", "logout", "status"] },
     "shop": { "description": "店铺管理相关命令", "commands": ["shop list", "shop add", "shop remove", "shop switch"] },
     "config": { "description": "配置管理相关命令", "commands": ["config list", "config get", "config set"] },
-    "publish": { "description": "商品发布相关命令", "commands": ["publish links", "publish list", "publish datapacket"] },
+    "publish": { "description": "商品发布相关命令", "commands": ["publish links", "publish list", "publish datapacket", "publish transfer"] },
     "subscribe": { "description": "权益订购相关命令", "commands": ["subscribe add"] }
   }
 }

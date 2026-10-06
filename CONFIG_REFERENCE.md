@@ -3,12 +3,12 @@
 
 ## 上货配置参数参考
 
-上货配置通过 `config set <KEY> <VALUE>` 命令设置，KEY 即配置键名，VALUE 为 JSON 字符串（复杂类型）或简单值（布尔/数字/字符串）。
+上货配置通过 `config set -k <KEY> -v <VALUE>` 命令设置，KEY 即配置键名，VALUE 为 JSON 字符串（复杂类型）或简单值（布尔/数字/字符串）。`-v` 省略时进入交互式设置。
 
 > **设置复杂类型时**：PowerShell 中传 JSON 需用单引号包裹或转义双引号，建议优先用简单类型配置项，复杂 JSON 在 PowerShell 中易出编码或引号问题。
 
 ```
-wdjlcli config set <KEY> <VALUE> --shopid <店铺ID>
+wdjlcli config set -k <KEY> -v <VALUE> -s <店铺ID>
 ```
 
 ---
@@ -34,7 +34,17 @@ wdjlcli config set <KEY> <VALUE> --shopid <店铺ID>
 
 ```
 # 示例：过滤有品牌、预售、不包邮的商品
-wdjlcli config set FilterBasic {"Copyed":true,"HasBrand":true,"PreSale":true,"NoFreeShipping":true} --shopid <店铺ID>
+wdjlcli config set -k FilterBasic -v {"Copyed":true,"HasBrand":true,"PreSale":true,"NoFreeShipping":true} -s <店铺ID>
+```
+
+---
+
+#### `FilterIds` — 商品ID过滤
+
+字符串值，商品ID列表，多个用逗号（中英文均可）或换行分隔。命中 ID 的商品直接跳过不上货。
+
+```
+wdjlcli config set -k FilterIds -v "123456789,987654321" -s <店铺ID>
 ```
 
 ---
@@ -49,7 +59,7 @@ wdjlcli config set FilterBasic {"Copyed":true,"HasBrand":true,"PreSale":true,"No
 | `Keywords` | string[] | 关键词列表 |
 
 ```
-wdjlcli config set FilterKeyword {"Title":{"Enabled":true,"Keywords":["旗舰店","品牌"]},"Brand":{"Enabled":true,"Keywords":["nike","adidas"]}} --shopid <店铺ID>
+wdjlcli config set -k FilterKeyword -v {"Title":{"Enabled":true,"Keywords":["旗舰店","品牌"]},"Brand":{"Enabled":true,"Keywords":["nike","adidas"]}} -s <店铺ID>
 ```
 
 ---
@@ -59,7 +69,7 @@ wdjlcli config set FilterKeyword {"Title":{"Enabled":true,"Keywords":["旗舰店
 过滤包含指定属性值的商品，格式：`属性名=属性值`，多个用逗号（中英文均可）或换行分隔。
 
 ```
-wdjlcli config set FilterAttrs 材质=陶瓷,颜色=红色 --shopid <店铺ID>
+wdjlcli config set -k FilterAttrs -v 材质=陶瓷,颜色=红色 -s <店铺ID>
 ```
 
 ---
@@ -74,7 +84,7 @@ wdjlcli config set FilterAttrs 材质=陶瓷,颜色=红色 --shopid <店铺ID>
 | `TotalStockGreaterThan` | int? | 过滤总库存 > 此值的商品 |
 
 ```
-wdjlcli config set FilterGoodsPriceStock {"PriceLessThan":5,"PriceGreaterThan":9999,"TotalStockLessThan":10} --shopid <店铺ID>
+wdjlcli config set -k FilterGoodsPriceStock -v {"PriceLessThan":5,"PriceGreaterThan":9999,"TotalStockLessThan":10} -s <店铺ID>
 ```
 
 ---
@@ -84,7 +94,7 @@ wdjlcli config set FilterGoodsPriceStock {"PriceLessThan":5,"PriceGreaterThan":9
 过滤规格值含有指定关键词的SKU，结构：`{"Enabled": bool, "Keywords": string[]}`。
 
 ```
-wdjlcli config set FilterSkuValueKeyword {"Enabled":true,"Keywords":["预售","定制"]} --shopid <店铺ID>
+wdjlcli config set -k FilterSkuValueKeyword -v {"Enabled":true,"Keywords":["预售","定制"]} -s <店铺ID>
 ```
 
 ---
@@ -100,7 +110,7 @@ wdjlcli config set FilterSkuValueKeyword {"Enabled":true,"Keywords":["预售","�
 | `MiniPriceSku` | bool | 是否过滤最低价SKU |
 
 ```
-wdjlcli config set FilterSkuPriceStock {"PriceLessThan":1,"SkuStockLessThan":5} --shopid <店铺ID>
+wdjlcli config set -k FilterSkuPriceStock -v {"PriceLessThan":1,"SkuStockLessThan":5} -s <店铺ID>
 ```
 
 > 注：旧版本的 `FilterNoImgSku`（过滤无图SKU）配置已从代码中移除，请改用 `SkuImgMiss`（`MissingHandleMode=3` 过滤无图SKU）。
@@ -124,7 +134,7 @@ wdjlcli config set FilterSkuPriceStock {"PriceLessThan":1,"SkuStockLessThan":5} 
 | `Cids` | string[] | 类目ID集合，索引0为顶级类目，依次往下 |
 | `CNames` | string[] | 类目名称集合，索引0为顶级类目，依次往下（必填） |
 
-> 建议通过 `wdjlcli config set cat.manual --shopid <店铺ID>` 交互式选择类目，而非手动构造 JSON。
+> 建议通过 `wdjlcli config set -k cat.manual -s <店铺ID>` 交互式选择类目，而非手动构造 JSON。
 
 ---
 
@@ -137,7 +147,7 @@ wdjlcli config set FilterSkuPriceStock {"PriceLessThan":1,"SkuStockLessThan":5} 
 | `BrandWord` | string? | 自定义品牌名（BrandMode=3 时填写） |
 
 ```
-wdjlcli config set Brand {"BrandMode":1,"UseNoBrand":true} --shopid <店铺ID>
+wdjlcli config set -k Brand -v {"BrandMode":1,"UseNoBrand":true} -s <店铺ID>
 ```
 
 ---
@@ -151,7 +161,7 @@ wdjlcli config set Brand {"BrandMode":1,"UseNoBrand":true} --shopid <店铺ID>
 | `UpFailToDraft` | bool? | 上货失败时是否将商品放入草稿箱（默认 false） |
 
 ```
-wdjlcli config set GoodState {"GoodState":1} --shopid <店铺ID>
+wdjlcli config set -k GoodState -v {"GoodState":1} -s <店铺ID>
 ```
 
 ---
@@ -183,7 +193,7 @@ wdjlcli config set GoodState {"GoodState":1} --shopid <店铺ID>
 默认 30 秒。
 
 ```
-wdjlcli config set UpIntervalSeconds 5 --shopid <店铺ID>
+wdjlcli config set -k UpIntervalSeconds -v 5 -s <店铺ID>
 ```
 
 ---
@@ -191,7 +201,7 @@ wdjlcli config set UpIntervalSeconds 5 --shopid <店铺ID>
 #### `ReduceType` — 减库存类型
 
 ```
-wdjlcli config set ReduceType 1 --shopid <店铺ID>
+wdjlcli config set -k ReduceType -v 1 -s <店铺ID>
 # 1=拍下减库存（代码默认值），2=付款减库存
 ```
 
@@ -202,8 +212,24 @@ wdjlcli config set ReduceType 1 --shopid <店铺ID>
 启用后自动生成随机型号（格式 `M-` + 8位大写字母数字，如 `M-AB12CD34`）写入"型号"属性。
 
 ```
-wdjlcli config set RandomModelEnabled 1 --shopid <店铺ID>
+wdjlcli config set -k RandomModelEnabled -v 1 -s <店铺ID>
 # 0=未启用（默认），1=启用
+```
+
+---
+
+#### `RandomModelGenerateEnabled` / `BrandAddRandomCharEnabled` / `RandomSeriesGenerateEnabled` — 随机值生成开关
+
+| 配置键 | 说明 |
+|--------|------|
+| `RandomModelGenerateEnabled` | 随机生成型号值（int?，0=未启用（默认），1=启用） |
+| `BrandAddRandomCharEnabled` | 品牌名加随机字符（int?，0=未启用（默认），1=启用） |
+| `RandomSeriesGenerateEnabled` | 随机生成系列值（int?，0=未启用（默认），1=启用） |
+
+```
+wdjlcli config set -k RandomModelGenerateEnabled -v 1 -s <店铺ID>
+wdjlcli config set -k BrandAddRandomCharEnabled -v 1 -s <店铺ID>
+wdjlcli config set -k RandomSeriesGenerateEnabled -v 1 -s <店铺ID>
 ```
 
 ---
@@ -215,7 +241,7 @@ wdjlcli config set RandomModelEnabled 1 --shopid <店铺ID>
 使用分词库随机打乱重组标题。
 
 ```
-wdjlcli config set TitleReBuild true --shopid <店铺ID>
+wdjlcli config set -k TitleReBuild -v true -s <店铺ID>
 ```
 
 ---
@@ -234,7 +260,7 @@ wdjlcli config set TitleReBuild true --shopid <店铺ID>
 | `ClearComma` | bool | 去除逗号 |
 
 ```
-wdjlcli config set TitleClearOption {"RemoveTitileKeyword":"限时\n促销","ClearEn":true,"ClearSpace":true} --shopid <店铺ID>
+wdjlcli config set -k TitleClearOption -v {"RemoveTitileKeyword":"限时\n促销","ClearEn":true,"ClearSpace":true} -s <店铺ID>
 ```
 
 ---
@@ -242,7 +268,7 @@ wdjlcli config set TitleClearOption {"RemoveTitileKeyword":"限时\n促销","Cle
 #### `TitleAddPrefixs` — 标题前缀（随机选一）
 
 ```
-wdjlcli config set TitleAddPrefixs ["新款","爆款","热销"] --shopid <店铺ID>
+wdjlcli config set -k TitleAddPrefixs -v ["新款","爆款","热销"] -s <店铺ID>
 ```
 
 ---
@@ -250,7 +276,7 @@ wdjlcli config set TitleAddPrefixs ["新款","爆款","热销"] --shopid <店铺
 #### `TitleAddSuffixs` — 标题后缀（随机选一）
 
 ```
-wdjlcli config set TitleAddSuffixs ["包邮","特惠"] --shopid <店铺ID>
+wdjlcli config set -k TitleAddSuffixs -v ["包邮","特惠"] -s <店铺ID>
 ```
 
 ---
@@ -260,7 +286,7 @@ wdjlcli config set TitleAddSuffixs ["包邮","特惠"] --shopid <店铺ID>
 Key=源词，Value=替换词（替换为空字符串即为删除）。
 
 ```
-wdjlcli config set TitleReplaceKeyword {"正品":"","特价":"优惠"} --shopid <店铺ID>
+wdjlcli config set -k TitleReplaceKeyword -v {"正品":"","特价":"优惠"} -s <店铺ID>
 ```
 
 ---
@@ -275,7 +301,7 @@ wdjlcli config set TitleReplaceKeyword {"正品":"","特价":"优惠"} --shopid 
 | `CusutomPaddingValue` | string? | 自定义补齐内容（AutoPaddingType=3），多个片段可用换行/逗号/分号/竖线/斜杠分隔 |
 
 ```
-wdjlcli config set TitleAutoPadding {"AutoPaddingType":3,"CusutomPaddingValue":"夏季,透气,百搭"} --shopid <店铺ID>
+wdjlcli config set -k TitleAutoPadding -v {"AutoPaddingType":3,"CusutomPaddingValue":"夏季,透气,百搭"} -s <店铺ID>
 ```
 
 ---
@@ -285,7 +311,7 @@ wdjlcli config set TitleAutoPadding {"AutoPaddingType":3,"CusutomPaddingValue":"
 0=平台默认限制，≥1=自定义长度上限。
 
 ```
-wdjlcli config set TitleLengthLimit 60 --shopid <店铺ID>
+wdjlcli config set -k TitleLengthLimit -v 60 -s <店铺ID>
 ```
 
 ---
@@ -299,7 +325,7 @@ wdjlcli config set TitleLengthLimit 60 --shopid <店铺ID>
 | `CusutomShortTitle` | string | 自定义短标题（ShortTitleType=3） |
 
 ```
-wdjlcli config set ShortTitle {"ShortTitleType":1,"IsFirstUseSource":true} --shopid <店铺ID>
+wdjlcli config set -k ShortTitle -v {"ShortTitleType":1,"IsFirstUseSource":true} -s <店铺ID>
 ```
 
 ---
@@ -309,8 +335,26 @@ wdjlcli config set ShortTitle {"ShortTitleType":1,"IsFirstUseSource":true} --sho
 字符串值，格式：`源商品ID=新标题`，多条以 `&` 或换行分隔。仅对 ID 匹配的源商品生效。
 
 ```
-wdjlcli config set TitleCustom "123456789=全新自定义标题A&987654321=全新自定义标题B" --shopid <店铺ID>
+wdjlcli config set -k TitleCustom -v "123456789=全新自定义标题A&987654321=全新自定义标题B" -s <店铺ID>
 ```
+
+---
+
+#### `TitleRemoveRange` — 标题范围清除
+
+删除标题中起止字符串之间的内容（含起止字符串本身）。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `StartStr` | string | 起始字符串 |
+| `EndStr` | string | 结束字符串 |
+
+```
+# 示例：删除标题中【...】之间的内容
+wdjlcli config set -k TitleRemoveRange -v {"StartStr":"【","EndStr":"】"} -s <店铺ID>
+```
+
+> ⚠️ 注意：该配置的处理器在当前版本暂未生效（源码中已禁用），设置后不会影响上货结果。
 
 ---
 
@@ -319,7 +363,7 @@ wdjlcli config set TitleCustom "123456789=全新自定义标题A&987654321=全�
 #### `AttrAutoFillRequired` — 自动补齐必填属性
 
 ```
-wdjlcli config set AttrAutoFillRequired true --shopid <店铺ID>
+wdjlcli config set -k AttrAutoFillRequired -v true -s <店铺ID>
 ```
 
 ---
@@ -335,7 +379,7 @@ Key=属性名，Value=`{"AttrValue": string, "ApplyMode": int}`。
 
 ```
 # 示例：材质匹配不上时设为纯棉，风格强制设为简约
-wdjlcli config set ModifyAttrs {"材质":{"AttrValue":"纯棉","ApplyMode":0},"风格":{"AttrValue":"简约","ApplyMode":1}} --shopid <店铺ID>
+wdjlcli config set -k ModifyAttrs -v {"材质":{"AttrValue":"纯棉","ApplyMode":0},"风格":{"AttrValue":"简约","ApplyMode":1}} -s <店铺ID>
 ```
 
 ---
@@ -343,7 +387,7 @@ wdjlcli config set ModifyAttrs {"材质":{"AttrValue":"纯棉","ApplyMode":0},"�
 #### `RemoveAttributeKeyword` — 清除属性值关键字
 
 ```
-wdjlcli config set RemoveAttributeKeyword {"Enabled":true,"Keywords":["产地","品牌"]} --shopid <店铺ID>
+wdjlcli config set -k RemoveAttributeKeyword -v {"Enabled":true,"Keywords":["产地","品牌"]} -s <店铺ID>
 ```
 
 ---
@@ -353,7 +397,7 @@ wdjlcli config set RemoveAttributeKeyword {"Enabled":true,"Keywords":["产地","
 Key=源文字，Value=替换后文字。
 
 ```
-wdjlcli config set AttrReplacKeyword {"旧值":"新值"} --shopid <店铺ID>
+wdjlcli config set -k AttrReplacKeyword -v {"旧值":"新值"} -s <店铺ID>
 ```
 
 ---
@@ -363,7 +407,7 @@ wdjlcli config set AttrReplacKeyword {"旧值":"新值"} --shopid <店铺ID>
 多个属性名用逗号分隔。
 
 ```
-wdjlcli config set ClearAttrNames 品牌,产地 --shopid <店铺ID>
+wdjlcli config set -k ClearAttrNames -v 品牌,产地 -s <店铺ID>
 ```
 
 ---
@@ -373,7 +417,7 @@ wdjlcli config set ClearAttrNames 品牌,产地 --shopid <店铺ID>
 Key=上游属性名，Value=下游属性名。
 
 ```
-wdjlcli config set AttrNameMatchMap {"颜色分类":"颜色","尺码":"尺寸"} --shopid <店铺ID>
+wdjlcli config set -k AttrNameMatchMap -v {"颜色分类":"颜色","尺码":"尺寸"} -s <店铺ID>
 ```
 
 ---
@@ -383,7 +427,7 @@ wdjlcli config set AttrNameMatchMap {"颜色分类":"颜色","尺码":"尺寸"} 
 #### `PriceSource` — 价格源
 
 ```
-wdjlcli config set PriceSource 2 --shopid <店铺ID>
+wdjlcli config set -k PriceSource -v 2 -s <店铺ID>
 # 1=折扣价/批发价，2=代发价/原价（默认）
 ```
 
@@ -412,10 +456,26 @@ wdjlcli config set PriceSource 2 --shopid <店铺ID>
 
 ```
 # 示例：货源价×1.3再+5元，小数四舍五入2位
-wdjlcli config set PriceHandle {"PriceMode":2,"PriceItem":{"Operator1Mode":2,"Operator1Value":1.3,"Operator2Mode":0,"Operator2Value":5},"DecimalsMode":3} --shopid <店铺ID>
+wdjlcli config set -k PriceHandle -v {"PriceMode":2,"PriceItem":{"Operator1Mode":2,"Operator1Value":1.3,"Operator2Mode":0,"Operator2Value":5},"DecimalsMode":3} -s <店铺ID>
 
 # 示例：统一价99.9元
-wdjlcli config set PriceHandle {"PriceMode":1,"FixedPrice":99.9} --shopid <店铺ID>
+wdjlcli config set -k PriceHandle -v {"PriceMode":1,"FixedPrice":99.9} -s <店铺ID>
+```
+
+---
+
+#### `PddSingleBuyPrice` — 拼多多单买价
+
+仅拼多多店铺生效，且仅在拼多多 Http/Api 上货提交阶段生效。单买价 = 拼单价应用 `PriceItem` 第一段加价后的结果；倍差上限来自类目规则（不落配置）。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `PriceItem` | 对象 | 单买价加价参数，仅使用第一段（`Operator1Mode`/`Operator1Value`），取值语义同上文 `PriceHandle` 的 PriceItem 字段 |
+| `AutoReduceWhenExceedMultiple` | bool | 单买价与拼单价超过类目倍差上限时，是否自动降价到上限以内 |
+
+```
+# 示例：单买价 = 拼单价 × 1.2，超过倍差时自动降价
+wdjlcli config set -k PddSingleBuyPrice -v {"PriceItem":{"Operator1Mode":2,"Operator1Value":1.2},"AutoReduceWhenExceedMultiple":true} -s <店铺ID>
 ```
 
 ---
@@ -426,7 +486,7 @@ wdjlcli config set PriceHandle {"PriceMode":1,"FixedPrice":99.9} --shopid <店�
 
 ```
 # 示例：上家不包邮时加价5元
-wdjlcli config set PricePostCost {"Key":1,"Value":5} --shopid <店铺ID>
+wdjlcli config set -k PricePostCost -v {"Key":1,"Value":5} -s <店铺ID>
 ```
 
 ---
@@ -434,7 +494,7 @@ wdjlcli config set PricePostCost {"Key":1,"Value":5} --shopid <店铺ID>
 #### `PriceDiscount` — 折扣设置
 
 ```
-wdjlcli config set PriceDiscount 9.5 --shopid <店铺ID>
+wdjlcli config set -k PriceDiscount -v 9.5 -s <店铺ID>
 # 默认9.9（即9.9折）
 ```
 
@@ -443,7 +503,7 @@ wdjlcli config set PriceDiscount 9.5 --shopid <店铺ID>
 #### `SkuPriceMultiple` — SKU价格倍差过大处理
 
 ```
-wdjlcli config set SkuPriceMultiple 1 --shopid <店铺ID>
+wdjlcli config set -k SkuPriceMultiple -v 1 -s <店铺ID>
 # 0=不处理（默认），1=对最低价加价，2=对最高价减价，3=删除超高价SKU，4=删除超低价SKU
 ```
 
@@ -462,7 +522,7 @@ wdjlcli config set SkuPriceMultiple 1 --shopid <店铺ID>
 
 ```
 # 示例：全部SKU统一库存999
-wdjlcli config set SkuStock {"StockProcessType":1,"UnifiedStockValue":999,"IgnoreZeroStock":true} --shopid <店铺ID>
+wdjlcli config set -k SkuStock -v {"StockProcessType":1,"UnifiedStockValue":999,"IgnoreZeroStock":true} -s <店铺ID>
 ```
 
 ---
@@ -477,7 +537,7 @@ wdjlcli config set SkuStock {"StockProcessType":1,"UnifiedStockValue":999,"Ignor
 
 ```
 # 示例：库存<5时改为100
-wdjlcli config set SkuLowStock {"ProcessType":1,"ThresholdValue":5,"TargetStockValue":100} --shopid <店铺ID>
+wdjlcli config set -k SkuLowStock -v {"ProcessType":1,"ThresholdValue":5,"TargetStockValue":100} -s <店铺ID>
 ```
 
 ---
@@ -493,7 +553,7 @@ wdjlcli config set SkuLowStock {"ProcessType":1,"ThresholdValue":5,"TargetStockV
 | `ChineseHandleType` | int | 0=不处理，1=转首字母（默认），2=删除中文 |
 
 ```
-wdjlcli config set SkuCode {"CodeType":2,"BuildType":0,"SplitCharType":1,"ChineseHandleType":1} --shopid <店铺ID>
+wdjlcli config set -k SkuCode -v {"CodeType":2,"BuildType":0,"SplitCharType":1,"ChineseHandleType":1} -s <店铺ID>
 ```
 
 ---
@@ -503,7 +563,7 @@ wdjlcli config set SkuCode {"CodeType":2,"BuildType":0,"SplitCharType":1,"Chines
 平台限制SKU数量时，超出部分的删除方向。
 
 ```
-wdjlcli config set SkuSpecRemoveDirection 1 --shopid <店铺ID>
+wdjlcli config set -k SkuSpecRemoveDirection -v 1 -s <店铺ID>
 # 0=按货源顺序从前至后删除，1=按货源顺序从后往前删除（默认）
 ```
 
@@ -514,7 +574,7 @@ wdjlcli config set SkuSpecRemoveDirection 1 --shopid <店铺ID>
 Key=源规格值，Value=替换值。
 
 ```
-wdjlcli config set SkuValueReplaceMap {"均码":"ONE SIZE","藏青":"深蓝"} --shopid <店铺ID>
+wdjlcli config set -k SkuValueReplaceMap -v {"均码":"ONE SIZE","藏青":"深蓝"} -s <店铺ID>
 ```
 
 ---
@@ -524,7 +584,7 @@ wdjlcli config set SkuValueReplaceMap {"均码":"ONE SIZE","藏青":"深蓝"} --
 Key=上游规格名，Value=下游规格名。
 
 ```
-wdjlcli config set SkuSpecMap {"颜色分类":"颜色","尺码":"尺寸"} --shopid <店铺ID>
+wdjlcli config set -k SkuSpecMap -v {"颜色分类":"颜色","尺码":"尺寸"} -s <店铺ID>
 ```
 
 ---
@@ -534,7 +594,7 @@ wdjlcli config set SkuSpecMap {"颜色分类":"颜色","尺码":"尺寸"} --shop
 格式：`规格1+规格2=合并后规格名`，多条用逗号分隔。
 
 ```
-wdjlcli config set SkuMergeRules 颜色+尺码=款式 --shopid <店铺ID>
+wdjlcli config set -k SkuMergeRules -v 颜色+尺码=款式 -s <店铺ID>
 ```
 
 ---
@@ -549,7 +609,7 @@ wdjlcli config set SkuMergeRules 颜色+尺码=款式 --shopid <店铺ID>
 | `TargetSpecNames` | string? | 指定规格名，逗号分隔（ScopeType=1） |
 
 ```
-wdjlcli config set SkuPrefixSuffix {"AddSuffixs":["新款"],"ScopeType":1,"TargetSpecNames":"颜色"} --shopid <店铺ID>
+wdjlcli config set -k SkuPrefixSuffix -v {"AddSuffixs":["新款"],"ScopeType":1,"TargetSpecNames":"颜色"} -s <店铺ID>
 ```
 
 ---
@@ -559,7 +619,7 @@ wdjlcli config set SkuPrefixSuffix {"AddSuffixs":["新款"],"ScopeType":1,"Targe
 多个关键词逗号分隔。
 
 ```
-wdjlcli config set SkuSpecValueDelKeyword 预售,定制 --shopid <店铺ID>
+wdjlcli config set -k SkuSpecValueDelKeyword -v 预售,定制 -s <店铺ID>
 ```
 
 ---
@@ -572,7 +632,7 @@ wdjlcli config set SkuSpecValueDelKeyword 预售,定制 --shopid <店铺ID>
 | `SkuPaddingMap` | dict? | Key=规格名，Value=预设规格值（逗号分隔） |
 
 ```
-wdjlcli config set SkuPadding {"IsAutoPadding":true,"SkuPaddingMap":{"颜色":"红色,蓝色,黄色","尺码":"S,M,L,XL"}} --shopid <店铺ID>
+wdjlcli config set -k SkuPadding -v {"IsAutoPadding":true,"SkuPaddingMap":{"颜色":"红色,蓝色,黄色","尺码":"S,M,L,XL"}} -s <店铺ID>
 ```
 
 ---
@@ -593,7 +653,7 @@ wdjlcli config set SkuPadding {"IsAutoPadding":true,"SkuPaddingMap":{"颜色":"�
 | `CustomImageUrl` | string? | 自定义图片URL（ImageMode=1） |
 
 ```
-wdjlcli config set DiySku {"Items":[{"SpecName":"颜色","SpecValues":"红色,蓝色","PriceMode":1,"Stock":100,"ImageMode":0}]} --shopid <店铺ID>
+wdjlcli config set -k DiySku -v {"Items":[{"SpecName":"颜色","SpecValues":"红色,蓝色","PriceMode":1,"Stock":100,"ImageMode":0}]} -s <店铺ID>
 ```
 
 ---
@@ -612,7 +672,7 @@ wdjlcli config set DiySku {"Items":[{"SpecName":"颜色","SpecValues":"红色,�
 
 ```
 # 示例：仅保留前5张主图
-wdjlcli config set MainImgDel {"DeleteMode":1,"KeepCount":5} --shopid <店铺ID>
+wdjlcli config set -k MainImgDel -v {"DeleteMode":1,"KeepCount":5} -s <店铺ID>
 ```
 
 ---
@@ -625,7 +685,7 @@ wdjlcli config set MainImgDel {"DeleteMode":1,"KeepCount":5} --shopid <店铺ID>
 | `CustomOrderList` | int[]? | 自定义顺序索引列表（如[3,1,2]，拼多多支持6-10张） |
 
 ```
-wdjlcli config set MainImgOrder {"MainImgOrderMode":1} --shopid <店铺ID>
+wdjlcli config set -k MainImgOrder -v {"MainImgOrderMode":1} -s <店铺ID>
 ```
 
 ---
@@ -639,7 +699,7 @@ wdjlcli config set MainImgOrder {"MainImgOrderMode":1} --shopid <店铺ID>
 
 ```
 # 示例：将第1张主图替换为自定义图片
-wdjlcli config set MainImgReplace {"ReplaceMode":2,"CustomReplaceImages":{"1":"https://example.com/img1.jpg"}} --shopid <店铺ID>
+wdjlcli config set -k MainImgReplace -v {"ReplaceMode":2,"CustomReplaceImages":{"1":"https://example.com/img1.jpg"}} -s <店铺ID>
 ```
 
 ---
@@ -654,7 +714,7 @@ wdjlcli config set MainImgReplace {"ReplaceMode":2,"CustomReplaceImages":{"1":"h
 
 ```
 # 示例：在第1张位置插入自定义图片
-wdjlcli config set MainImgAdd {"CustomImages":{"1":"https://example.com/logo.jpg"}} --shopid <店铺ID>
+wdjlcli config set -k MainImgAdd -v {"CustomImages":{"1":"https://example.com/logo.jpg"}} -s <店铺ID>
 ```
 
 ---
@@ -662,7 +722,7 @@ wdjlcli config set MainImgAdd {"CustomImages":{"1":"https://example.com/logo.jpg
 #### `MainImgPaddingMode` — 补齐主图
 
 ```
-wdjlcli config set MainImgPaddingMode 1 --shopid <店铺ID>
+wdjlcli config set -k MainImgPaddingMode -v 1 -s <店铺ID>
 # 0=不补齐（默认），1=复制主图补齐，2=复制SKU图补齐
 ```
 
@@ -696,7 +756,7 @@ wdjlcli config set MainImgPaddingMode 1 --shopid <店铺ID>
 
 ```
 # 示例：翻转第1、3张主图
-wdjlcli config set MainImgFlipMode {"FlipMode":2,"FlipIndices":[1,3]} --shopid <店铺ID>
+wdjlcli config set -k MainImgFlipMode -v {"FlipMode":2,"FlipIndices":[1,3]} -s <店铺ID>
 ```
 
 ---
@@ -710,6 +770,22 @@ wdjlcli config set MainImgFlipMode {"FlipMode":2,"FlipIndices":[1,3]} --shopid <
 
 ---
 
+#### `ExplainVideoCopy` — 讲解视频
+
+仅拼多多店铺生效。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `VideoMode` | int | 0=使用上家讲解视频，1=不上传（默认），2=自定义视频 |
+| `CustomVideoUrl` | string? | 视频URL（仅 VideoMode=2 时有效） |
+
+```
+# 示例：使用上家讲解视频
+wdjlcli config set -k ExplainVideoCopy -v {"VideoMode":0,"CustomVideoUrl":""} -s <店铺ID>
+```
+
+---
+
 ### H. 详情图配置
 
 #### `DescClearOption` — 详情文字清除
@@ -719,7 +795,7 @@ wdjlcli config set MainImgFlipMode {"FlipMode":2,"FlipIndices":[1,3]} --shopid <
 | `ClearKeyword` | string? | 删除指定关键词，多个以 `\n` 分隔 |
 
 ```
-wdjlcli config set DescClearOption {"ClearKeyword":"厂家直销\n批发联系"} --shopid <店铺ID>
+wdjlcli config set -k DescClearOption -v {"ClearKeyword":"厂家直销\n批发联系"} -s <店铺ID>
 ```
 
 ---
@@ -735,7 +811,7 @@ wdjlcli config set DescClearOption {"ClearKeyword":"厂家直销\n批发联系"}
 
 ```
 # 示例：删除前1张和后2张
-wdjlcli config set DetailImgDel {"DeleteHeadCount":1,"DeleteTailCount":2} --shopid <店铺ID>
+wdjlcli config set -k DetailImgDel -v {"DeleteHeadCount":1,"DeleteTailCount":2} -s <店铺ID>
 ```
 
 ---
@@ -743,7 +819,7 @@ wdjlcli config set DetailImgDel {"DeleteHeadCount":1,"DeleteTailCount":2} --shop
 #### `DetailImgLinkImgMode` — 有链接详情图处理
 
 ```
-wdjlcli config set DetailImgLinkImgMode 1 --shopid <店铺ID>
+wdjlcli config set -k DetailImgLinkImgMode -v 1 -s <店铺ID>
 # 0=不处理（默认），1=删除有链接的详情图，2=保留但去除链接
 ```
 
@@ -752,8 +828,8 @@ wdjlcli config set DetailImgLinkImgMode 1 --shopid <店铺ID>
 #### `DetailCustomHeads` / `DetailCustomTails` — 自定义详情首尾图
 
 ```
-wdjlcli config set DetailCustomHeads ["https://example.com/head.jpg"] --shopid <店铺ID>
-wdjlcli config set DetailCustomTails ["https://example.com/tail.jpg"] --shopid <店铺ID>
+wdjlcli config set -k DetailCustomHeads -v ["https://example.com/head.jpg"] -s <店铺ID>
+wdjlcli config set -k DetailCustomTails -v ["https://example.com/tail.jpg"] -s <店铺ID>
 ```
 
 ---
@@ -761,7 +837,7 @@ wdjlcli config set DetailCustomTails ["https://example.com/tail.jpg"] --shopid <
 #### `IgnoreSourceDetailImgs` — 不使用上家详情图
 
 ```
-wdjlcli config set IgnoreSourceDetailImgs true --shopid <店铺ID>
+wdjlcli config set -k IgnoreSourceDetailImgs -v true -s <店铺ID>
 ```
 
 ---
@@ -778,19 +854,24 @@ wdjlcli config set IgnoreSourceDetailImgs true --shopid <店铺ID>
 
 #### `DetailImgHeight` — 详情图高度切片
 
+详情图高度超过切片高度时自动切成多张。
+
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `SplitMode` | int | 0=平台限制（默认），1=自定义高度 |
-| `CustomeSplitHeight` | int? | 自定义切片高度px（SplitMode=1） |
+| `SplitMode` | int | 0=以平台限制高度为准（默认），1=自定义高度 |
+| `CustomeSplitHeight` | int? | 自定义切片高度px（SplitMode=1）；不合法（为空/≤0/超过平台限制）时回退为平台限制高度 |
 
-> 注：该配置当前主要由批量修改流程使用。
+```
+# 示例：按 1000px 自定义高度切片
+wdjlcli config set -k DetailImgHeight -v {"SplitMode":1,"CustomeSplitHeight":1000} -s <店铺ID>
+```
 
 ---
 
 #### `DetailImgWidthMode` — 详情图宽度
 
 ```
-wdjlcli config set DetailImgWidthMode 1 --shopid <店铺ID>
+wdjlcli config set -k DetailImgWidthMode -v 1 -s <店铺ID>
 # 0=不处理（默认），1=设为750px，2=设为790px
 ```
 
@@ -799,13 +880,13 @@ wdjlcli config set DetailImgWidthMode 1 --shopid <店铺ID>
 #### 其他详情图开关
 
 ```
-wdjlcli config set DetailImgFilterSmallImgs true --shopid <店铺ID>  # 过滤小图
-wdjlcli config set DetailImgShuffle true --shopid <店铺ID>          # 随机打乱详情图顺序
-wdjlcli config set DetailImgFlip true --shopid <店铺ID>             # 翻转详情图
-wdjlcli config set DetailImgAutoMerge true --shopid <店铺ID>        # 超限时自动合并（当前版本上货流程未生效）
-wdjlcli config set NoUploadTaobaoMobile true --shopid <店铺ID>      # 不上传淘宝手机端详情
-wdjlcli config set NoUploadTaobaoPC true --shopid <店铺ID>          # 不上传淘宝PC端详情
-wdjlcli config set DelText true --shopid <店铺ID>                   # 删除详情文字（已定义，当前版本暂未生效）
+wdjlcli config set -k DetailImgFilterSmallImgs -v true -s <店铺ID>  # 过滤小图
+wdjlcli config set -k DetailImgShuffle -v true -s <店铺ID>          # 随机打乱详情图顺序
+wdjlcli config set -k DetailImgFlip -v true -s <店铺ID>             # 翻转详情图
+wdjlcli config set -k DetailImgAutoMerge -v true -s <店铺ID>        # 超限时自动合并（当前版本上货流程未生效）
+wdjlcli config set -k NoUploadTaobaoMobile -v true -s <店铺ID>      # 不上传淘宝手机端详情
+wdjlcli config set -k NoUploadTaobaoPC -v true -s <店铺ID>          # 不上传淘宝PC端详情
+wdjlcli config set -k DelText -v true -s <店铺ID>                   # 删除详情文字，只保留图片
 ```
 
 ---
@@ -816,8 +897,8 @@ wdjlcli config set DelText true --shopid <店铺ID>                   # 删除�
 
 ```
 # 0=不上传，1=使用货源白底图（默认），2=从主图第X张生成
-wdjlcli config set WhiteImgBuild {"WhiteBgMode":1} --shopid <店铺ID>
-wdjlcli config set WhiteImgBuild {"WhiteBgMode":2,"WhiteBgFromIndex":1} --shopid <店铺ID>
+wdjlcli config set -k WhiteImgBuild -v {"WhiteBgMode":1} -s <店铺ID>
+wdjlcli config set -k WhiteImgBuild -v {"WhiteBgMode":2,"WhiteBgFromIndex":1} -s <店铺ID>
 ```
 
 ---
@@ -826,7 +907,7 @@ wdjlcli config set WhiteImgBuild {"WhiteBgMode":2,"WhiteBgFromIndex":1} --shopid
 
 ```
 # 0=不上传，1=使用货源长图（默认），2=从主图第X张生成
-wdjlcli config set RectangleImgBuild {"RectangleImgMode":1} --shopid <店铺ID>
+wdjlcli config set -k RectangleImgBuild -v {"RectangleImgMode":1} -s <店铺ID>
 ```
 
 | 字段 | 类型 | 说明 |
@@ -847,7 +928,7 @@ wdjlcli config set RectangleImgBuild {"RectangleImgMode":1} --shopid <店铺ID>
 | `RootDir` | string | 图片空间根目录名称（默认"万店精灵"，不支持中文目录的平台用 wandianjingling） |
 
 ```
-wdjlcli config set ImgSpace {"BuildDirMode":1,"RootDir":"万店精灵"} --shopid <店铺ID>
+wdjlcli config set -k ImgSpace -v {"BuildDirMode":1,"RootDir":"万店精灵"} -s <店铺ID>
 ```
 
 ---
@@ -867,7 +948,7 @@ wdjlcli config set ImgSpace {"BuildDirMode":1,"RootDir":"万店精灵"} --shopid
 | `UseFirstMainImg` | bool | 是否使用第一张主图作为资质（默认 false，为 true 时忽略 ImageUrls） |
 
 ```
-wdjlcli config set Qualification {"Items":[{"Name":"食品生产许可证","ImageUrls":["https://example.com/cert.jpg"],"UseFirstMainImg":false}]} --shopid <店铺ID>
+wdjlcli config set -k Qualification -v {"Items":[{"Name":"食品生产许可证","ImageUrls":["https://example.com/cert.jpg"],"UseFirstMainImg":false}]} -s <店铺ID>
 ```
 
 ---
@@ -884,7 +965,7 @@ wdjlcli config set Qualification {"Items":[{"Name":"食品生产许可证","Imag
 
 ```
 # 示例：缺图时用第1张主图替代
-wdjlcli config set SkuImgMiss {"MissingHandleMode":1,"MainImageIndex":1} --shopid <店铺ID>
+wdjlcli config set -k SkuImgMiss -v {"MissingHandleMode":1,"MainImageIndex":1} -s <店铺ID>
 ```
 
 ---
@@ -902,7 +983,7 @@ wdjlcli config set SkuImgMiss {"MissingHandleMode":1,"MainImageIndex":1} --shopi
 #### `SkuEnableFlip` — SKU图翻转
 
 ```
-wdjlcli config set SkuEnableFlip true --shopid <店铺ID>
+wdjlcli config set -k SkuEnableFlip -v true -s <店铺ID>
 ```
 
 ---
@@ -940,7 +1021,7 @@ wdjlcli config set SkuEnableFlip true --shopid <店铺ID>
 
 ```
 # 示例：首图右下角加文字水印
-wdjlcli config set Watermark {"MainImgWater":2,"WaterType":"text","WaterItemConfig":{"WaterType":"text","Position":"rightbottom","Text":"我的店铺","FontName":"黑体","FontSize":20,"FontColorRgba":"255,255,255,180","IsBold":true}} --shopid <店铺ID>
+wdjlcli config set -k Watermark -v {"MainImgWater":2,"WaterType":"text","WaterItemConfig":{"WaterType":"text","Position":"rightbottom","Text":"我的店铺","FontName":"黑体","FontSize":20,"FontColorRgba":"255,255,255,180","IsBold":true}} -s <店铺ID>
 ```
 
 ---
@@ -957,7 +1038,7 @@ wdjlcli config set Watermark {"MainImgWater":2,"WaterType":"text","WaterItemConf
 | `SevenDayReturnOption` | int? | 1=支持（默认），2=包装未破损，3=安装后不支持，4=激活后不支持，5=使用后不支持，6=定制不支持，7=合约不支持 |
 
 ```
-wdjlcli config set GeneralService {"SevenDayReturn":true,"SevenDayReturnOption":1,"DamageReturn":true} --shopid <店铺ID>
+wdjlcli config set -k GeneralService -v {"SevenDayReturn":true,"SevenDayReturnOption":1,"DamageReturn":true} -s <店铺ID>
 ```
 
 ---
@@ -1027,7 +1108,7 @@ wdjlcli config set GeneralService {"SevenDayReturn":true,"SevenDayReturnOption":
 #### `TaobaoSkuDisplayMode` — 淘宝规格展示模式
 
 ```
-wdjlcli config set TaobaoSkuDisplayMode 1 --shopid <店铺ID>
+wdjlcli config set -k TaobaoSkuDisplayMode -v 1 -s <店铺ID>
 # 0=单层展示（自定义填写），1=分层展示（匹配标准属性，默认）
 ```
 
@@ -1043,7 +1124,7 @@ wdjlcli config set TaobaoSkuDisplayMode 1 --shopid <店铺ID>
 | `MinCountByOrder` | int? | 每单最少购买数（件） |
 
 ```
-wdjlcli config set DouyinLimit {"LimitEnabled":true,"MaxCountByUser":2,"MaxCountByOrder":1} --shopid <店铺ID>
+wdjlcli config set -k DouyinLimit -v {"LimitEnabled":true,"MaxCountByUser":2,"MaxCountByOrder":1} -s <店铺ID>
 ```
 
 ---
@@ -1053,7 +1134,7 @@ wdjlcli config set DouyinLimit {"LimitEnabled":true,"MaxCountByUser":2,"MaxCount
 字段同 `DouyinLimit`：`LimitEnabled`、`MaxCountByUser`（累积限购）、`MaxCountByOrder`（每单限购）、`MinCountByOrder`（每单至少购买）。
 
 ```
-wdjlcli config set KsLimit {"LimitEnabled":true,"MaxCountByUser":10,"MaxCountByOrder":2} --shopid <店铺ID>
+wdjlcli config set -k KsLimit -v {"LimitEnabled":true,"MaxCountByUser":10,"MaxCountByOrder":2} -s <店铺ID>
 ```
 
 ---
@@ -1067,14 +1148,14 @@ wdjlcli config set KsLimit {"LimitEnabled":true,"MaxCountByUser":10,"MaxCountByO
 | `MaxBuyCount` | int? | 限购件数 |
 
 ```
-wdjlcli config set WxShopLimit {"LimitEnabled":true,"LimitType":1,"MaxBuyCount":5} --shopid <店铺ID>
+wdjlcli config set -k WxShopLimit -v {"LimitEnabled":true,"LimitType":1,"MaxBuyCount":5} -s <店铺ID>
 ```
 
 ---
 
 #### `ShopDeliveryConfs` — 店铺发货与运费配置
 
-> 建议通过 `wdjlcli config set shop.freight --shopid <店铺ID>` 交互式选择运费模板，而非手动构造 JSON。
+> 建议通过 `wdjlcli config set -k shop.freight -s <店铺ID>` 交互式选择运费模板，而非手动构造 JSON。
 
 JSON 数组，每个店铺一项。公共字段：
 
@@ -1109,6 +1190,7 @@ JSON 数组，每个店铺一项。公共字段：
 | `SizeChartTemplate` | string? | 尺码模板名称 |
 | `SizeChartTemplateId` | string? | 尺码模板ID |
 | `IsLogisticsDelivery` | bool | 是否物流发货（适用可无物流发货的类目） |
+| `VirtualGoodsSpotDeliveryHour` | int? | 虚拟商品发货时间（虚拟卡券类目 goodsType 15/19 优先使用该值，未设置时回退 SpotDeliveryHour） |
 
 **PlatExten — 抖店（DouyinPlatExten）**：
 
@@ -1185,7 +1267,14 @@ JSON 数组，每个店铺一项。公共字段：
 |------|------|------|
 | `SizeChartTemplate` | string? | 尺码模板名称（与店铺后台模板名称匹配） |
 
+**PlatExten — 闲鱼（XianyuPlatExten）**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `SendAddress` | string? | 发货地址 |
+| `SpotDeliveryHour` | int? | 发货时间：0=不选择（默认），24=24小时，48=48小时 |
+
 ```
 # 示例：拼多多店铺 + 抖音店铺
-wdjlcli config set ShopDeliveryConfs [{"ShopID":"SHOP002","ShopName":"拼多多店铺","PlatformEnum":3,"ShippingTemplateMode":0,"PlatExten":{"DeliveryMode":0,"SpotDeliveryHour":48}},{"ShopID":"SHOP003","ShopName":"抖音店铺","PlatformEnum":4,"ShippingTemplateMode":0,"PlatExten":{"DeliveryMode":1,"PreSaleEndMode":1,"PreSaleEndAfterDays":5,"PreSaleDeliveryDays":2,"PreSaleDeliveryTiming":1,"SizeChartMode":0,"SizeChartTemplate":"通用尺码表"}}] --shopid <店铺ID>
+wdjlcli config set -k ShopDeliveryConfs -v [{"ShopID":"SHOP002","ShopName":"拼多多店铺","PlatformEnum":3,"ShippingTemplateMode":0,"PlatExten":{"DeliveryMode":0,"SpotDeliveryHour":48}},{"ShopID":"SHOP003","ShopName":"抖音店铺","PlatformEnum":4,"ShippingTemplateMode":0,"PlatExten":{"DeliveryMode":1,"PreSaleEndMode":1,"PreSaleEndAfterDays":5,"PreSaleDeliveryDays":2,"PreSaleDeliveryTiming":1,"SizeChartMode":0,"SizeChartTemplate":"通用尺码表"}}] -s <店铺ID>
 ```

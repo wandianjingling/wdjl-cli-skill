@@ -1,6 +1,6 @@
 ---
 name: wdjlcli
-version: 1.0.0
+version: 1.1.0
 description: 万店精灵 CLI 指令型 Skill，Agent 通过终端执行 wdjlcli 命令与工具交互，不涉及 MCP 调用
 ---
 
@@ -106,6 +106,7 @@ bash scripts/uninstall.sh
 | "切换到另一个店铺" | `wdjlcli shop switch` |
 | "帮我采集这个链接" / "上货" / "铺货" | `wdjlcli publish links --url <URL>` |
 | "查看待上传商品" / "上货列表" | `wdjlcli publish list` |
+| "店铺互传" / "店铺搬家" / "把A店商品复制到B店" | `wdjlcli publish transfer --sourceshopid <来源店铺ID> --shopid <目标店铺ID>` |
 | "查看配置" / "当前配置是什么" | `wdjlcli config list` |
 | "修改配置" / "设置运费模板" | `wdjlcli config set -k <KEY> -v <VALUE>` |
 | "查看某个配置项" | `wdjlcli config get -k <KEY>` |
@@ -237,7 +238,7 @@ wdjlcli publish links --url <商品链接> --shopid <店铺ID>
 
 | 参数 | 必填 | 说明 |
 |------|------|------|
-| `--url` | 否 | 商品源链接（支持淘宝、天猫、拼多多、抖音、京东、快手、1688），不指定则交互式提示输入 |
+| `--url` | 否 | 商品源链接或纯商品ID，支持逗号/分号/空格分隔的多个混合输入，来源平台按链接域名自动识别（1688/淘宝/天猫/拼多多/抖音/京东/快手），不指定则交互式提示输入 |
 | `--shopid` | 否 | 指定目标店铺 ID，不指定则交互式选择当前工作店铺 |
 
 #### `publish list`
@@ -267,6 +268,36 @@ wdjlcli publish datapacket ./data_packets/
 |------|------|------|
 | `paths` | 是 | 数据包文件路径或目录路径，支持传入多个路径（空格分隔），支持 `.txt` 格式 |
 | `--shopid` | 否 | 指定目标店铺 ID，不指定则交互式选择当前工作店铺 |
+
+**行为说明**：
+
+- 单个文件解析失败时会打印具体错误原因；无法识别格式的文件会打印警告并跳过
+- 所有路径都未解析出有效商品时，打印"没有解析出有效商品，未提交上货任务"并以退出码 1 结束
+
+#### `publish transfer`
+
+店铺互传上货（店铺搬家）：将来源店铺的在售商品复制上传到目标店铺。**需登录**。
+
+```
+wdjlcli publish transfer --sourceshopid <来源店铺ID> --shopid <目标店铺ID>
+wdjlcli publish transfer --sourceshopid shopA -s shopB -g 123456789,987654321
+wdjlcli publish transfer --sourceshopid shopA -s shopB -n 连衣裙 --page 2
+```
+
+| 参数 | 必填 | 说明 |
+|------|------|------|
+| `--sourceshopid` | 否 | 来源店铺ID（从该店铺复制商品），不指定则交互选择 |
+| `-s\|--shopid` | 否 | 目标店铺ID（商品上传到该店铺），不指定则交互选择 |
+| `-g\|--goodsids` | 否 | 来源店铺商品ID，多个用逗号分隔；不指定则查询来源店铺在售商品列表后交互输入 |
+| `-n\|--name` | 否 | 按商品名称搜索来源店铺在售商品 |
+| `--page` | 否 | 来源店铺在售商品列表页码（默认1，每页20条） |
+
+**行为说明**：
+
+- 来源店铺与目标店铺不能相同
+- 只查询/互传在售（上架）商品
+- 指定 `-g|--goodsids` 时会先按 ID 反查来源店铺补齐商品信息（抖店互传自动携带 publishIdMap，http 通道必需）；查不到的 ID 会警告并按原 ID 直接互传
+- 任务提交后由 Core 上货队列执行（daemon/REPL 模式可保活）
 
 ### 配置管理命令（config）
 
@@ -509,7 +540,7 @@ wdjlcli shop switch <shopId>
 
 **解决**：设置类目配置
 ```
-wdjlcli config set -k cat.manual --shopid <店铺ID>
+wdjlcli config set -k cat.manual -s <店铺ID>
 ```
 
 ### 4. 上货失败 - 属性未能匹配到值
@@ -518,7 +549,7 @@ wdjlcli config set -k cat.manual --shopid <店铺ID>
 
 **解决**：开启属性自动填充
 ```
-wdjlcli config set -k AttrAutoFillRequired -v true --shopid <店铺ID>
+wdjlcli config set -k AttrAutoFillRequired -v true -s <店铺ID>
 ```
 
 ### 5. 上货失败 - 未能找到店铺配置
@@ -527,7 +558,7 @@ wdjlcli config set -k AttrAutoFillRequired -v true --shopid <店铺ID>
 
 **解决**：设置运费模板
 ```
-wdjlcli config set -k shop.freight --shopid <店铺ID>
+wdjlcli config set -k shop.freight -s <店铺ID>
 ```
 
 ### 6. 添加店铺失败 - 无头浏览器启动失败
@@ -638,6 +669,25 @@ wdjlcli config set -k shop.freight --shopid <店铺ID>
 >
 > 配置完成后，重新上货即可。
 
+### 示例五：店铺互传上货（店铺搬家）
+
+> **用户**：把我 A 店的商品复制到 B 店上架。
+>
+> **Agent**：好的，先确认两个店铺都已添加并登录，然后执行店铺互传。
+>
+> ```
+> wdjlcli shop list
+> wdjlcli publish transfer --sourceshopid <A店ID> --shopid <B店ID>
+> ```
+>
+> 不指定商品 ID 时，会列出 A 店的在售商品供选择后互传；也可以直接指定商品：
+>
+> ```
+> wdjlcli publish transfer --sourceshopid <A店ID> -s <B店ID> -g 123456789,987654321
+> ```
+>
+> 任务已提交到上货队列，可用 `wdjlcli publish list --shopid <B店ID>` 查看进度。
+
 ## 注意事项
 
 1. **浏览器登录**：`shop add` 默认使用二维码控制台模式（控制台渲染二维码图片），用户扫码即可完成登录；若平台不支持二维码登录或添加 `--browser` 参数，则会启动浏览器窗口模式（非无头），需要用户在 GUI 窗口中完成登录。Agent 无法代替用户完成扫码或凭证登录。
@@ -655,6 +705,8 @@ wdjlcli config set -k shop.freight --shopid <店铺ID>
 7. **属性配置**：遇到属性匹配失败时，优先使用 `AttrAutoFillRequired = true` 开启自动填充，而不是手动配置JSON映射（PowerShell传递中文JSON有编码问题）。
 
 8. **店铺切换**：`shop switch` 必须显式传入ShopID参数，不支持交互式选择。
+
+9. **店铺互传**：`publish transfer` 要求来源店铺与目标店铺均已添加并登录、且订购未过期；来源与目标店铺不能相同，且只互传在售（上架）商品。抖店互传时 CLI 会自动携带 publishId（publishIdMap），无需手动处理。
 
 9. 当前 CLI 程序按照标准规范实现，输入命令前可先使用 `wdjlcli <command> -h` 或 `wdjlcli <command> --help` 查看命令参数。
 

@@ -8,7 +8,23 @@
 
 版本类型说明：`新增` / `变更` / `修复` / `移除` / `废弃` / `安全`。
 
-## [未发布]
+## [1.1.0] - 2026-10-06
+
+### 新增
+
+- 新增 `publish transfer` 店铺互传上货命令文档（SKILL.md 触发场景、命令小节、使用示例与 skill.json 命令定义）。
+- 新增上货配置键文档：`FilterIds`（商品ID过滤）、`RandomModelGenerateEnabled`/`BrandAddRandomCharEnabled`/`RandomSeriesGenerateEnabled`（随机型号/品牌随机字符/随机系列）、`TitleRemoveRange`（标题范围清除，当前版本暂未生效）、`PddSingleBuyPrice`（拼多多单买价）、`ExplainVideoCopy`（拼多多讲解视频）、闲鱼 `XianyuPlatExten` 与拼多多 `VirtualGoodsSpotDeliveryHour` 发货扩展。
+
+### 变更
+
+- `publish links` 文档更新：`--url` 支持完整商品链接与纯商品ID，支持逗号/分号/空格分隔的多个混合输入，来源平台按链接域名自动识别。
+- `publish datapacket` 文档补充失败提示与退出码语义（单个文件解析失败打印错误原因；无法识别格式打印警告并跳过；全部无有效商品时以退出码 1 结束）。
+- `DelText`（删除详情文字）配置处理器已实现并生效，移除"暂未生效"标注。
+- `DetailImgHeight`（详情图高度切片）补充 SplitMode 语义与自定义高度回退说明。
+
+### 修复
+
+- 修正 CONFIG_REFERENCE.md 中全部 `config set` 示例语法：位置参数写法 `config set <KEY> <VALUE> --shopid <店铺ID>` 统一改为选项写法 `config set -k <KEY> -v <VALUE> -s <店铺ID>`。
 
 ## [1.0.0] - 2026-07-24
 

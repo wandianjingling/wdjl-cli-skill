@@ -136,6 +136,12 @@ wdjlcli publish links --url 商品链接 --shopid 店铺ID
 wdjlcli publish list --shopid 店铺ID
 ```
 
+**店铺互传（店铺搬家）**
+
+```bash
+wdjlcli publish transfer --sourceshopid 来源店铺ID --shopid 目标店铺ID
+```
+
 ## 许可证
 
 [MIT License](./LICENSE)
