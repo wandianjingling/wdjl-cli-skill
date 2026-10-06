@@ -21,7 +21,7 @@ wdjlcli config set <KEY> <VALUE> --shopid <店铺ID>
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `Copyed` | bool | 过滤已复制过的商品 |
+| `Copyed` | bool | 过滤已复制过的商品（默认 true） |
 | `HasBrand` | bool | 过滤有品牌的商品 |
 | `Customized` | bool | 过滤定制商品 |
 | `No7Return` | bool | 过滤不支持7天无理由退货的商品 |
@@ -56,7 +56,7 @@ wdjlcli config set FilterKeyword {"Title":{"Enabled":true,"Keywords":["旗舰店
 
 #### `FilterAttrs` — 属性过滤
 
-过滤包含指定属性值的商品，格式：`属性名=属性值`，多个用逗号分隔。
+过滤包含指定属性值的商品，格式：`属性名=属性值`，多个用逗号（中英文均可）或换行分隔。
 
 ```
 wdjlcli config set FilterAttrs 材质=陶瓷,颜色=红色 --shopid <店铺ID>
@@ -75,14 +75,6 @@ wdjlcli config set FilterAttrs 材质=陶瓷,颜色=红色 --shopid <店铺ID>
 
 ```
 wdjlcli config set FilterGoodsPriceStock {"PriceLessThan":5,"PriceGreaterThan":9999,"TotalStockLessThan":10} --shopid <店铺ID>
-```
-
----
-
-#### `FilterNoImgSku` — 过滤无图SKU
-
-```
-wdjlcli config set FilterNoImgSku true --shopid <店铺ID>
 ```
 
 ---
@@ -111,6 +103,8 @@ wdjlcli config set FilterSkuValueKeyword {"Enabled":true,"Keywords":["预售","�
 wdjlcli config set FilterSkuPriceStock {"PriceLessThan":1,"SkuStockLessThan":5} --shopid <店铺ID>
 ```
 
+> 注：旧版本的 `FilterNoImgSku`（过滤无图SKU）配置已从代码中移除，请改用 `SkuImgMiss`（`MissingHandleMode=3` 过滤无图SKU）。
+
 ---
 
 ### B. 商品基础配置
@@ -120,7 +114,15 @@ wdjlcli config set FilterSkuPriceStock {"PriceLessThan":1,"SkuStockLessThan":5} 
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `CategoryType` | int | 0=智能匹配（默认），1=手动选择 |
-| `CustomCategories` | 数组 | CategoryType=1 时必填，各平台手动类目 |
+| `CustomCategories` | 数组 | CategoryType=1 时必填，各平台手动类目，元素结构见下 |
+
+`CustomCategories` 元素字段：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `PlatformEnum` | int | 平台（1=淘宝，2=天猫，3=拼多多，4=抖店，5=京东，6=快手，7=微信小店，8=阿里，9=小红书） |
+| `Cids` | string[] | 类目ID集合，索引0为顶级类目，依次往下 |
+| `CNames` | string[] | 类目名称集合，索引0为顶级类目，依次往下（必填） |
 
 > 建议通过 `wdjlcli config set cat.manual --shopid <店铺ID>` 交互式选择类目，而非手动构造 JSON。
 
@@ -146,6 +148,7 @@ wdjlcli config set Brand {"BrandMode":1,"UseNoBrand":true} --shopid <店铺ID>
 |------|------|------|
 | `GoodState` | int | 0=立即上架，1=放入仓库（默认），2=草稿箱，3=定时上架 |
 | `ToSaleTime` | DateTime? | 定时上架时间（GoodState=3），格式：`2026-06-01T10:00:00` |
+| `UpFailToDraft` | bool? | 上货失败时是否将商品放入草稿箱（默认 false） |
 
 ```
 wdjlcli config set GoodState {"GoodState":1} --shopid <店铺ID>
@@ -177,6 +180,8 @@ wdjlcli config set GoodState {"GoodState":1} --shopid <店铺ID>
 
 #### `UpIntervalSeconds` — 上货间隔秒数
 
+默认 30 秒。
+
 ```
 wdjlcli config set UpIntervalSeconds 5 --shopid <店铺ID>
 ```
@@ -187,7 +192,18 @@ wdjlcli config set UpIntervalSeconds 5 --shopid <店铺ID>
 
 ```
 wdjlcli config set ReduceType 1 --shopid <店铺ID>
-# 1=拍下减库存，2=付款减库存（默认）
+# 1=拍下减库存（代码默认值），2=付款减库存
+```
+
+---
+
+#### `RandomModelEnabled` — 随机型号
+
+启用后自动生成随机型号（格式 `M-` + 8位大写字母数字，如 `M-AB12CD34`）写入"型号"属性。
+
+```
+wdjlcli config set RandomModelEnabled 1 --shopid <店铺ID>
+# 0=未启用（默认），1=启用
 ```
 
 ---
@@ -208,7 +224,7 @@ wdjlcli config set TitleReBuild true --shopid <店铺ID>
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `RemoveTitileKeyword` | string? | 删除指定关键词，多个以 `\n` 分隔 |
+| `RemoveTitileKeyword` | string? | 删除指定关键词，多个以 `\n` 分隔（默认使用内置敏感词表） |
 | `ClearEn` | bool | 去除英文 |
 | `ClearNum` | bool | 去除数字 |
 | `ClearSpace` | bool | 去除空格 |
@@ -249,6 +265,21 @@ wdjlcli config set TitleReplaceKeyword {"正品":"","特价":"优惠"} --shopid 
 
 ---
 
+#### `TitleAutoPadding` — 标题自动补齐
+
+标题长度不足时自动补齐（仅在平台按最小长度取标题时生效）。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `AutoPaddingType` | int | 0=不补齐（默认），1=用商品属性值补齐，2=用商品SKU值补齐，3=自定义补齐 |
+| `CusutomPaddingValue` | string? | 自定义补齐内容（AutoPaddingType=3），多个片段可用换行/逗号/分号/竖线/斜杠分隔 |
+
+```
+wdjlcli config set TitleAutoPadding {"AutoPaddingType":3,"CusutomPaddingValue":"夏季,透气,百搭"} --shopid <店铺ID>
+```
+
+---
+
 #### `TitleLengthLimit` — 标题长度限制
 
 0=平台默认限制，≥1=自定义长度上限。
@@ -264,11 +295,21 @@ wdjlcli config set TitleLengthLimit 60 --shopid <店铺ID>
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `ShortTitleType` | int | 0=不设置（默认），1=使用上家短标题，2=自动生成，3=自定义 |
-| `IsFirstUseSource` | bool | 优先使用源商品短标题 |
+| `IsFirstUseSource` | bool | 优先使用源商品短标题（默认 true） |
 | `CusutomShortTitle` | string | 自定义短标题（ShortTitleType=3） |
 
 ```
 wdjlcli config set ShortTitle {"ShortTitleType":1,"IsFirstUseSource":true} --shopid <店铺ID>
+```
+
+---
+
+#### `TitleCustom` — 自定义标题（按商品）
+
+字符串值，格式：`源商品ID=新标题`，多条以 `&` 或换行分隔。仅对 ID 匹配的源商品生效。
+
+```
+wdjlcli config set TitleCustom "123456789=全新自定义标题A&987654321=全新自定义标题B" --shopid <店铺ID>
 ```
 
 ---
@@ -355,7 +396,7 @@ wdjlcli config set PriceSource 2 --shopid <店铺ID>
 | `PriceMode` | int | 0=不处理（默认），1=统一价，2=按货源价加价 |
 | `FixedPrice` | decimal? | 统一价金额（PriceMode=1） |
 | `PriceItem` | 对象 | 加价参数（PriceMode=2），见下 |
-| `SkuMiniPriceItem` | 对象? | SKU最低价单独加价参数（可选） |
+| `SkuMiniPriceItem` | 对象? | SKU最低价单独加价参数（可选，结构同 PriceItem） |
 | `DecimalsMode` | int? | 1=抹零，2=四舍五入1位，3=四舍五入2位（默认），4=固定尾数 |
 | `FixedDecimalsValue` | decimal? | 固定尾数值（DecimalsMode=4，如0.99） |
 
@@ -367,6 +408,7 @@ wdjlcli config set PriceSource 2 --shopid <店铺ID>
 | `Operator1Value` | decimal? | 第一步操作数值 |
 | `Operator2Mode` | int? | 第二步操作类型（同上，可选） |
 | `Operator2Value` | decimal? | 第二步操作数值 |
+| `MinPrice` | decimal? | 最低价格保护（保留字段，当前版本暂未生效） |
 
 ```
 # 示例：货源价×1.3再+5元，小数四舍五入2位
@@ -374,6 +416,17 @@ wdjlcli config set PriceHandle {"PriceMode":2,"PriceItem":{"Operator1Mode":2,"Op
 
 # 示例：统一价99.9元
 wdjlcli config set PriceHandle {"PriceMode":1,"FixedPrice":99.9} --shopid <店铺ID>
+```
+
+---
+
+#### `PricePostCost` — 邮费加价
+
+上家商品不包邮时，给所有SKU价格和商品价格加上指定邮费。JSON 为键值对对象：`Key`=1 启用 / 0 不启用，`Value`=加价金额。
+
+```
+# 示例：上家不包邮时加价5元
+wdjlcli config set PricePostCost {"Key":1,"Value":5} --shopid <店铺ID>
 ```
 
 ---
@@ -434,12 +487,24 @@ wdjlcli config set SkuLowStock {"ProcessType":1,"ThresholdValue":5,"TargetStockV
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `CodeType` | int | 0=不设置，1=上家商家编码（默认），2=自定义 |
+| `IsFirstUseSourceCode` | bool | 优先使用上家SKU商家编码（默认 true，仅 CodeType=2 时有效） |
 | `BuildType` | int | 0=商品ID+规格1+规格2（默认），1=商品ID+规格拼接，2=商家编码+规格，3=商家编码+规格拼接，4=仅规格 |
 | `SplitCharType` | int | 0=/，1=_（默认），2=-，3=\|，4=空格，5=#，6=无 |
 | `ChineseHandleType` | int | 0=不处理，1=转首字母（默认），2=删除中文 |
 
 ```
 wdjlcli config set SkuCode {"CodeType":2,"BuildType":0,"SplitCharType":1,"ChineseHandleType":1} --shopid <店铺ID>
+```
+
+---
+
+#### `SkuSpecRemoveDirection` — SKU数量超限删除方向
+
+平台限制SKU数量时，超出部分的删除方向。
+
+```
+wdjlcli config set SkuSpecRemoveDirection 1 --shopid <店铺ID>
+# 0=按货源顺序从前至后删除，1=按货源顺序从后往前删除（默认）
 ```
 
 ---
@@ -579,6 +644,21 @@ wdjlcli config set MainImgReplace {"ReplaceMode":2,"CustomReplaceImages":{"1":"h
 
 ---
 
+#### `MainImgAdd` — 主图添加
+
+在指定位置插入自定义图片，原主图位置依次后移（1:1 与 3:4 主图同时插入）。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `CustomImages` | dict? | Key=插入位置索引(1-10)，Value=图片URL |
+
+```
+# 示例：在第1张位置插入自定义图片
+wdjlcli config set MainImgAdd {"CustomImages":{"1":"https://example.com/logo.jpg"}} --shopid <店铺ID>
+```
+
+---
+
 #### `MainImgPaddingMode` — 补齐主图
 
 ```
@@ -631,6 +711,18 @@ wdjlcli config set MainImgFlipMode {"FlipMode":2,"FlipIndices":[1,3]} --shopid <
 ---
 
 ### H. 详情图配置
+
+#### `DescClearOption` — 详情文字清除
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `ClearKeyword` | string? | 删除指定关键词，多个以 `\n` 分隔 |
+
+```
+wdjlcli config set DescClearOption {"ClearKeyword":"厂家直销\n批发联系"} --shopid <店铺ID>
+```
+
+---
 
 #### `DetailImgDel` — 删除详情图
 
@@ -691,6 +783,8 @@ wdjlcli config set IgnoreSourceDetailImgs true --shopid <店铺ID>
 | `SplitMode` | int | 0=平台限制（默认），1=自定义高度 |
 | `CustomeSplitHeight` | int? | 自定义切片高度px（SplitMode=1） |
 
+> 注：该配置当前主要由批量修改流程使用。
+
 ---
 
 #### `DetailImgWidthMode` — 详情图宽度
@@ -708,9 +802,10 @@ wdjlcli config set DetailImgWidthMode 1 --shopid <店铺ID>
 wdjlcli config set DetailImgFilterSmallImgs true --shopid <店铺ID>  # 过滤小图
 wdjlcli config set DetailImgShuffle true --shopid <店铺ID>          # 随机打乱详情图顺序
 wdjlcli config set DetailImgFlip true --shopid <店铺ID>             # 翻转详情图
-wdjlcli config set DetailImgAutoMerge true --shopid <店铺ID>        # 超限时自动合并
+wdjlcli config set DetailImgAutoMerge true --shopid <店铺ID>        # 超限时自动合并（当前版本上货流程未生效）
 wdjlcli config set NoUploadTaobaoMobile true --shopid <店铺ID>      # 不上传淘宝手机端详情
 wdjlcli config set NoUploadTaobaoPC true --shopid <店铺ID>          # 不上传淘宝PC端详情
+wdjlcli config set DelText true --shopid <店铺ID>                   # 删除详情文字（已定义，当前版本暂未生效）
 ```
 
 ---
@@ -732,6 +827,47 @@ wdjlcli config set WhiteImgBuild {"WhiteBgMode":2,"WhiteBgFromIndex":1} --shopid
 ```
 # 0=不上传，1=使用货源长图（默认），2=从主图第X张生成
 wdjlcli config set RectangleImgBuild {"RectangleImgMode":1} --shopid <店铺ID>
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `RectangleImgMode` | int | 0=不上传，1=使用货源长图/导购图（默认），2=从主图生成 |
+| `RectangleImgFromIndex` | int? | 来源主图索引（RectangleImgMode=2，注意：从0开始计数，优先取3:4主图） |
+
+---
+
+#### `ImgSpace` — 图片空间配置
+
+各平台图片空间上传时的目录设置（不支持图片空间的平台按默认方式处理）。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `BuildDirMode` | int | 0=平台默认（默认），1=按日期生成子文件夹（yyyyMMdd），2=自定义 |
+| `CustomDir` | string? | 自定义子目录名称（BuildDirMode=2） |
+| `RootDir` | string | 图片空间根目录名称（默认"万店精灵"，不支持中文目录的平台用 wandianjingling） |
+
+```
+wdjlcli config set ImgSpace {"BuildDirMode":1,"RootDir":"万店精灵"} --shopid <店铺ID>
+```
+
+---
+
+#### `Qualification` — 资质图配置
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `Items` | 数组 | 资质图片列表，元素结构见下 |
+
+`Items` 元素字段：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `Name` | string | 资质名称（如"食品生产许可证"） |
+| `ImageUrls` | string[]? | 资质图片URL列表 |
+| `UseFirstMainImg` | bool | 是否使用第一张主图作为资质（默认 false，为 true 时忽略 ImageUrls） |
+
+```
+wdjlcli config set Qualification {"Items":[{"Name":"食品生产许可证","ImageUrls":["https://example.com/cert.jpg"],"UseFirstMainImg":false}]} --shopid <店铺ID>
 ```
 
 ---
@@ -784,13 +920,16 @@ wdjlcli config set SkuEnableFlip true --shopid <店铺ID>
 | `WaterType` | string | `text`=文字水印，`image`=图片水印，`border`=边框水印 |
 | `WaterItemConfig` | 对象 | 水印详细参数 |
 
+> 注：实际生效的水印类型取 `WaterItemConfig.WaterType`，设置时建议顶层 `WaterType` 与其保持一致。
+
 **WaterItemConfig 字段**：
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
+| `WaterType` | string | `text`（默认）/`image`/`border`，实际生效的水印类型 |
 | `Position` | string | `lefttop`/`leftbottom`/`righttop`/`rightbottom`（默认）/`center`/`topcenter`/`bottomcenter`/`full`/`random` |
 | `Text` | string? | 文字内容（WaterType=text） |
-| `FontName` | string | 字体：`黑体`/`楷体`/`等线`等 |
+| `FontName` | string | 字体：`黑体`（默认）/`楷体`/`等线`等 |
 | `FontSize` | float? | 字体大小（默认12） |
 | `FontColorRgba` | string? | 颜色，格式`R,G,B,A`，如`255,255,255,180` |
 | `IsBold` | bool | 是否加粗 |
@@ -801,7 +940,7 @@ wdjlcli config set SkuEnableFlip true --shopid <店铺ID>
 
 ```
 # 示例：首图右下角加文字水印
-wdjlcli config set Watermark {"MainImgWater":2,"WaterType":"text","WaterItemConfig":{"Position":"rightbottom","Text":"我的店铺","FontName":"黑体","FontSize":20,"FontColorRgba":"255,255,255,180","IsBold":true}} --shopid <店铺ID>
+wdjlcli config set Watermark {"MainImgWater":2,"WaterType":"text","WaterItemConfig":{"WaterType":"text","Position":"rightbottom","Text":"我的店铺","FontName":"黑体","FontSize":20,"FontColorRgba":"255,255,255,180","IsBold":true}} --shopid <店铺ID>
 ```
 
 ---
@@ -855,6 +994,36 @@ wdjlcli config set GeneralService {"SevenDayReturn":true,"SevenDayReturnOption":
 
 ---
 
+#### `WxShopService` — 微信小店售后配置
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `FakeCompensateThree` | bool | 假一赔三 |
+| `ExchangeSupport` | bool | 支持换货 |
+
+---
+
+#### `KsService` — 快手售后配置
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `DamageReturn` | bool | 坏了包退 |
+| `AllergyReturn` | bool | 过敏包退 |
+
+---
+
+#### `AlibabaService` — 1688售后配置
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `Shbt` | bool | 少货必退 |
+| `Cjbz` | bool | 材质保障 |
+| `Hdbp` | bool | 坏单包赔 |
+| `Qtbh` | bool | 7天包换 |
+| `Zchp` | bool | 支持混批 |
+
+---
+
 #### `TaobaoSkuDisplayMode` — 淘宝规格展示模式
 
 ```
@@ -879,18 +1048,144 @@ wdjlcli config set DouyinLimit {"LimitEnabled":true,"MaxCountByUser":2,"MaxCount
 
 ---
 
+#### `KsLimit` — 快手限购配置
+
+字段同 `DouyinLimit`：`LimitEnabled`、`MaxCountByUser`（累积限购）、`MaxCountByOrder`（每单限购）、`MinCountByOrder`（每单至少购买）。
+
+```
+wdjlcli config set KsLimit {"LimitEnabled":true,"MaxCountByUser":10,"MaxCountByOrder":2} --shopid <店铺ID>
+```
+
+---
+
+#### `WxShopLimit` — 微信小店限购配置
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `LimitEnabled` | bool | 是否开启限购 |
+| `LimitType` | int? | 1=每日（默认），2=每周，3=每月，4=每年 |
+| `MaxBuyCount` | int? | 限购件数 |
+
+```
+wdjlcli config set WxShopLimit {"LimitEnabled":true,"LimitType":1,"MaxBuyCount":5} --shopid <店铺ID>
+```
+
+---
+
 #### `ShopDeliveryConfs` — 店铺发货与运费配置
 
 > 建议通过 `wdjlcli config set shop.freight --shopid <店铺ID>` 交互式选择运费模板，而非手动构造 JSON。
 
+JSON 数组，每个店铺一项。公共字段：
+
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `ShopID` | string | 店铺ID |
-| `ShopName` | string | 店铺名称 |
-| `PlatformEnum` | string | 平台标识（Taobao/Pdd/Douyin/Jd 等） |
-| `DeliveryMode` | int | 0=现货发货（默认），1=全款预售 |
-| `SpotDeliveryHour` | int? | 发货时间：1=当日，2=次日，48=48h（默认），72=3天，120=5天，168=7天 |
+| `ShopID` | string | 店铺ID（必填） |
+| `ShopName` | string | 店铺名称（必填） |
+| `PlatformEnum` | int | 平台：1=淘宝，2=天猫，3=拼多多，4=抖店，5=京东，6=快手，7=微信小店，8=阿里，9=小红书，11=TikTok |
 | `ShippingTemplateId` | string? | 运费模板ID |
 | `ShippingTemplateName` | string? | 运费模板名称 |
-| `ShippingTemplateMode` | int | 0=店铺默认运费模板（默认），1=自定义运费模板 |
+| `ShippingTemplateMode` | int? | 0=店铺默认运费模板（默认），1=自定义运费模板 |
+| `PlatExten` | 对象 | 平台扩展配置（发货时间/预售/尺码模板等），字段随平台不同，见下 |
+
+> 注意：旧版本的平铺字段 `DeliveryMode`/`SpotDeliveryHour`/`SizeChartTemplate` 已移入 `PlatExten`，按平台分别定义。
+
+**PlatExten — 淘宝/天猫（TbPlatExten）**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `SpotDeliveryHour` | int? | 现货发货时间：1=当日，24=24h，48=48h（默认），72/120/168/240/360=3/5/7/10/15天 |
 | `SizeChartTemplate` | string? | 尺码模板名称 |
+| `Location` | 对象? | 发货地 `{"Text":"杭州","Value":"330100"}`（默认杭州） |
+
+**PlatExten — 拼多多（PddPlatExten）**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `DeliveryMode` | int | 0=现货发货（默认），1=时段预售，2=定时预售 |
+| `SpotDeliveryHour` | int? | 现货发货时间（DeliveryMode=0）：1=当日，24=24h，48=48h（默认） |
+| `PeriodPreSaleDeliveryDays` | int? | 时段预售发货天数（DeliveryMode=1，默认11） |
+| `TimedPreSaleEndTime` | DateTime? | 定时预售结束时间（DeliveryMode=2） |
+| `SizeChartTemplate` | string? | 尺码模板名称 |
+| `SizeChartTemplateId` | string? | 尺码模板ID |
+| `IsLogisticsDelivery` | bool | 是否物流发货（适用可无物流发货的类目） |
+
+**PlatExten — 抖店（DouyinPlatExten）**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `DeliveryMode` | int | 0=现货发货（默认），1=全款预售 |
+| `SpotDeliveryHour` | int? | 现货发货时间（DeliveryMode=0）：1=当日，24=24h，48=48h（默认） |
+| `PreSaleEndMode` | int | 预售结束方式（DeliveryMode=1）：0=指定日期（默认），1=指定天数后结束，2=无结束时间 |
+| `PreSaleEndTime` | DateTime? | 预售结束时间（PreSaleEndMode=0） |
+| `PreSaleEndAfterDays` | int? | 指定天数后结束（PreSaleEndMode=1，默认5） |
+| `PreSaleDeliveryDays` | int? | 预售发货天数（默认2） |
+| `PreSaleDeliveryTiming` | int | 预售发货时机：0=预售结束后发货，1=支付完成后发货（默认） |
+| `SizeChartMode` | int? | 尺码模板选择方式：0=尺码模板名称（默认），1=自定义尺码模板图片 |
+| `SizeChartTemplate` | string? | 尺码模板名称 |
+| `SizeChartImg` | string? | 尺码模板图片（SizeChartMode=1） |
+
+**PlatExten — 京东（JdPlatExten）**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `SpotDeliveryHour` | int? | 现货发货时间：24=24h，48=48h（默认） |
+| `MainImgMode` | int? | 主图模式：0=一套主图（默认），1=多套主图 |
+
+**PlatExten — 快手（KuaishouPlatExten）**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `DeliveryMode` | int | 0=现货发货（默认），1=买家付款后N天发货 |
+| `SpotDeliveryHour` | int? | 现货发货时间（DeliveryMode=0）：24=24h，48=48h（默认），72=72h |
+| `PaidAfterDeliveryDays` | int? | 买家付款后发货天数（DeliveryMode=1） |
+| `SizeChartTemplate` | string? | 尺码模板名称 |
+| `SizeChartTemplateId` | string? | 尺码模板ID |
+
+**PlatExten — 微信小店（WxShopPlatExten）**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `DeliveryMode` | int | 0=现货发货（默认），1=买家付款后N天发货，2=预售结束后N天发货 |
+| `SpotDeliveryHour` | int? | 现货发货时间（DeliveryMode=0）：1=当日，24=24h，48=48h（默认） |
+| `PaidAfterDeliveryDays` | int? | 买家付款后发货天数（DeliveryMode=1，通常3-15天） |
+| `PreSaleEndTime` | DateTime? | 预售结束时间（DeliveryMode=2） |
+| `PreSaleEndAfterDeliveryDays` | int? | 预售结束后发货天数（DeliveryMode=2，默认2，通常2-3天） |
+| `PreSaleEndHandleMode` | int | 预售结束后处理：0=商品下架（默认），1=转为现货销售 |
+| `SizeChartTemplate` | string? | 尺码模板名称 |
+| `SizeChartTemplateId` | string? | 尺码模板ID |
+| `AfterSaleAddressId` | string? | 售后地址ID |
+| `AfterSaleAddressName` | string? | 售后地址名称 |
+
+**PlatExten — 小红书（XhsPlatExten）**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `DeliveryMode` | int | 0=现货发货（默认），1=时段预售，2=定时预售 |
+| `SpotDeliveryHour` | int? | 现货发货时间（DeliveryMode=0）：1=当日，24=24h，48=48h（默认） |
+| `PeriodPreSaleDeliveryDays` | int? | 时段预售发货天数（DeliveryMode=1，默认11） |
+| `TimedPreSaleEndTime` | DateTime? | 定时预售结束时间（DeliveryMode=2） |
+| `SizeChartTemplate` | string? | 尺码模板名称 |
+| `SizeChartTemplateId` | string? | 尺码模板ID |
+
+**PlatExten — 1688/阿里（AlibabaPlatExten）**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `SpotDeliveryHour` | int? | 现货发货时间（默认48） |
+| `SizeChartTemplate` | string? | 尺码模板名称 |
+| `SizeChartTemplateId` | string? | 尺码模板ID |
+| `SendAddressId` | string? | 发货地址ID |
+| `MinBuyCount` | int | 最小起订量（默认0） |
+| `SkuWeight` | int? | SKU重量（克），填写后同一值应用到全部SKU |
+
+**PlatExten — TikTok（TKPlatExten）**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `SizeChartTemplate` | string? | 尺码模板名称（与店铺后台模板名称匹配） |
+
+```
+# 示例：拼多多店铺 + 抖音店铺
+wdjlcli config set ShopDeliveryConfs [{"ShopID":"SHOP002","ShopName":"拼多多店铺","PlatformEnum":3,"ShippingTemplateMode":0,"PlatExten":{"DeliveryMode":0,"SpotDeliveryHour":48}},{"ShopID":"SHOP003","ShopName":"抖音店铺","PlatformEnum":4,"ShippingTemplateMode":0,"PlatExten":{"DeliveryMode":1,"PreSaleEndMode":1,"PreSaleEndAfterDays":5,"PreSaleDeliveryDays":2,"PreSaleDeliveryTiming":1,"SizeChartMode":0,"SizeChartTemplate":"通用尺码表"}}] --shopid <店铺ID>
+```
