@@ -1,6 +1,6 @@
 {
   "app": "wdjlcli",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "万店精灵命令行工具，用于电商多平台店铺管理、商品发布、配置管理等操作",
   "commands": [
     {
@@ -354,6 +354,201 @@
       ]
     },
     {
+      "name": "goodsupdate submit",
+      "description": "提交商品批量修改任务（改价、改标题、改库存等28种修改类型）。同一店铺的批次严格串行执行；默认等待批次到终态，CLI单次进程退出会中断正在执行的批次",
+      "type": "goodsupdate",
+      "requiresLogin": true,
+      "options": [
+        {
+          "name": "shop",
+          "short": "s",
+          "long": "shopid",
+          "type": "string",
+          "required": false,
+          "description": "目标店铺ID，不指定则打印店铺表后交互输入"
+        },
+        {
+          "name": "type",
+          "short": "t",
+          "long": "type",
+          "type": "string",
+          "required": true,
+          "description": "修改类型，支持枚举名（不区分大小写，如 title、price、stock）或数值（如 1、2、13），取值见 BATCH_MODIFY_REFERENCE.md"
+        },
+        {
+          "name": "goodsids",
+          "short": "g",
+          "long": "goodsids",
+          "type": "string",
+          "required": false,
+          "description": "商品ID，逗号分隔；指定后为\"指定商品\"模式；不指定则为\"全店商品\"模式（按 --filter 筛选）"
+        },
+        {
+          "name": "exclude",
+          "short": null,
+          "long": "exclude",
+          "type": "string",
+          "required": false,
+          "description": "全店模式下排除的商品ID，逗号分隔"
+        },
+        {
+          "name": "filter",
+          "short": null,
+          "long": "filter",
+          "type": "string",
+          "required": false,
+          "description": "全店模式的筛选条件JSON（透传 QueryFilter）"
+        },
+        {
+          "name": "options",
+          "short": "o",
+          "long": "options",
+          "type": "string",
+          "required": false,
+          "description": "修改参数JSON字符串，字段随 --type 不同，见 BATCH_MODIFY_REFERENCE.md"
+        },
+        {
+          "name": "options-file",
+          "short": null,
+          "long": "options-file",
+          "type": "string",
+          "required": false,
+          "description": "从JSON文件读取修改参数（与 -o 二选一；Windows PowerShell 下长JSON转义困难时推荐）"
+        },
+        {
+          "name": "no-wait",
+          "short": null,
+          "long": "no-wait",
+          "type": "bool",
+          "required": false,
+          "description": "提交后不等待完成立即退出（仅建议在 daemon/REPL 模式下使用）"
+        },
+        {
+          "name": "timeout",
+          "short": null,
+          "long": "timeout",
+          "type": "int",
+          "required": false,
+          "description": "等待超时时间（分钟，默认30），超时后退出码为2，批次仍在执行"
+        }
+      ],
+      "examples": [
+        "wdjlcli goodsupdate submit -s shop001 -t price -g 123456789,987654321 -o '{\"PriceMode\":1,\"FixedPrice\":99.9}'",
+        "wdjlcli goodsupdate submit -s shop001 -t title --options-file options.json",
+        "wdjlcli goodsupdate submit -s shop001 -t 13 --no-wait"
+      ]
+    },
+    {
+      "name": "goodsupdate records",
+      "description": "查询批量修改批次记录，可按店铺过滤",
+      "type": "goodsupdate",
+      "requiresLogin": true,
+      "options": [
+        {
+          "name": "shop",
+          "short": "s",
+          "long": "shopid",
+          "type": "string",
+          "required": false,
+          "description": "按店铺过滤"
+        },
+        {
+          "name": "page",
+          "short": null,
+          "long": "page",
+          "type": "int",
+          "required": false,
+          "description": "页码（默认1）"
+        },
+        {
+          "name": "pagesize",
+          "short": null,
+          "long": "pagesize",
+          "type": "int",
+          "required": false,
+          "description": "每页条数（默认20）"
+        }
+      ],
+      "examples": [
+        "wdjlcli goodsupdate records",
+        "wdjlcli goodsupdate records -s shop001 --page 2 --pagesize 50"
+      ]
+    },
+    {
+      "name": "goodsupdate items",
+      "description": "查询某批量修改批次的商品明细",
+      "type": "goodsupdate",
+      "requiresLogin": true,
+      "options": [
+        {
+          "name": "batch",
+          "short": "b",
+          "long": "batch",
+          "type": "string",
+          "required": true,
+          "description": "批次ID"
+        },
+        {
+          "name": "page",
+          "short": null,
+          "long": "page",
+          "type": "int",
+          "required": false,
+          "description": "页码（默认1）"
+        },
+        {
+          "name": "pagesize",
+          "short": null,
+          "long": "pagesize",
+          "type": "int",
+          "required": false,
+          "description": "每页条数（默认20）"
+        }
+      ],
+      "examples": [
+        "wdjlcli goodsupdate items -b 123",
+        "wdjlcli goodsupdate items -b 123 --page 2 --pagesize 50"
+      ]
+    },
+    {
+      "name": "goodsupdate cancel",
+      "description": "取消批量修改批次。已提交平台的商品不回滚，未执行的明细标记为已取消",
+      "type": "goodsupdate",
+      "requiresLogin": true,
+      "options": [
+        {
+          "name": "batch",
+          "short": "b",
+          "long": "batch",
+          "type": "string",
+          "required": true,
+          "description": "批次ID"
+        }
+      ],
+      "examples": [
+        "wdjlcli goodsupdate cancel -b 123"
+      ]
+    },
+    {
+      "name": "goodsupdate retry",
+      "description": "重试批次中失败的明细",
+      "type": "goodsupdate",
+      "requiresLogin": true,
+      "options": [
+        {
+          "name": "batch",
+          "short": "b",
+          "long": "batch",
+          "type": "string",
+          "required": true,
+          "description": "批次ID"
+        }
+      ],
+      "examples": [
+        "wdjlcli goodsupdate retry -b 123"
+      ]
+    },
+    {
       "name": "subscribe add",
       "description": "订购权益。执行后在控制台打印官方定价页面链接，需用户自行在浏览器中打开完成订购",
       "type": "subscribe",
@@ -418,6 +613,7 @@
     "shop": { "description": "店铺管理相关命令", "commands": ["shop list", "shop add", "shop remove", "shop switch"] },
     "config": { "description": "配置管理相关命令", "commands": ["config list", "config get", "config set"] },
     "publish": { "description": "商品发布相关命令", "commands": ["publish links", "publish list", "publish datapacket", "publish transfer"] },
+    "goodsupdate": { "description": "商品批量修改相关命令", "commands": ["goodsupdate submit", "goodsupdate records", "goodsupdate items", "goodsupdate cancel", "goodsupdate retry"] },
     "subscribe": { "description": "权益订购相关命令", "commands": ["subscribe add"] }
   }
 }

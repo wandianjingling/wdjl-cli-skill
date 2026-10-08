@@ -1,6 +1,6 @@
 ---
 name: wdjlcli
-version: 1.1.1
+version: 1.2.0
 description: 万店精灵 CLI 指令型 Skill，Agent 通过终端执行 wdjlcli 命令与工具交互，不涉及 MCP 调用
 ---
 
@@ -107,6 +107,11 @@ bash scripts/uninstall.sh
 | "帮我采集这个链接" / "上货" / "铺货" | `wdjlcli publish links --url <URL>` |
 | "查看待上传商品" / "上货列表" | `wdjlcli publish list` |
 | "店铺互传" / "店铺搬家" / "把A店商品复制到B店" | `wdjlcli publish transfer --sourceshopid <来源店铺ID> --shopid <目标店铺ID>` |
+| "批量改价" / "批量改标题" / "批量改库存" / "批量修改商品" | `wdjlcli goodsupdate submit -s <店铺ID> -t <类型>` |
+| "查看批量修改记录" / "批量修改进度" | `wdjlcli goodsupdate records` |
+| "查看某批次修改了哪些商品" | `wdjlcli goodsupdate items -b <批次ID>` |
+| "取消批量修改" / "停止批量修改" | `wdjlcli goodsupdate cancel -b <批次ID>` |
+| "重试批量修改失败的商品" | `wdjlcli goodsupdate retry -b <批次ID>` |
 | "查看配置" / "当前配置是什么" | `wdjlcli config list` |
 | "修改配置" / "设置运费模板" | `wdjlcli config set -k <KEY> -v <VALUE>` |
 | "查看某个配置项" | `wdjlcli config get -k <KEY>` |
@@ -299,6 +304,110 @@ wdjlcli publish transfer --sourceshopid shopA -s shopB -n 连衣裙 --page 2
 - 只查询/互传在售（上架）商品
 - 指定 `-g|--goodsids` 时会先按 ID 反查来源店铺补齐商品信息（抖店互传自动携带 publishIdMap，http 通道必需）；查不到的 ID 会警告并按原 ID 直接互传
 - 任务提交后由 Core 上货队列执行（daemon/REPL 模式可保活）
+
+### 商品批量修改命令（goodsupdate）
+
+#### `goodsupdate submit`
+
+提交商品批量修改任务（改价、改标题、改库存等 28 种修改类型）。**需登录**。
+
+```
+wdjlcli goodsupdate submit -s <店铺ID> -t price -g 123456789,987654321 -o '{"PriceMode":1,"FixedPrice":99.9}'
+wdjlcli goodsupdate submit -s <店铺ID> -t title --options-file options.json
+wdjlcli goodsupdate submit -s <店铺ID> -t stock --filter '{"SaleStatus":1}' -o '{"SkuStock":{"StockProcessType":2,"AddStockValue":100}}'
+```
+
+| 参数 | 必填 | 说明 |
+|------|------|------|
+| `-s\|--shopid` | 否 | 目标店铺ID，不指定则打印店铺表后交互输入 |
+| `-t\|--type` | 是 | 修改类型，支持枚举名（不区分大小写，如 `title`、`price`、`stock`）或数值（如 `1`、`2`、`13`），取值见下方修改类型速查表 |
+| `-g\|--goodsids` | 否 | 商品ID，逗号分隔；指定后为"指定商品"模式；不指定则为"全店商品"模式（按 `--filter` 筛选） |
+| `--exclude` | 否 | 全店模式下排除的商品ID，逗号分隔 |
+| `--filter` | 否 | 全店模式的筛选条件 JSON（透传 QueryFilter） |
+| `-o\|--options` | 否 | 修改参数 JSON 字符串，字段随 `--type` 不同，详见 [BATCH_MODIFY_REFERENCE.md](./BATCH_MODIFY_REFERENCE.md) |
+| `--options-file` | 否 | 从 JSON 文件读取修改参数（与 `-o` 二选一；Windows PowerShell 下长 JSON 转义困难时推荐） |
+| `--no-wait` | 否 | 提交后不等待完成立即退出 |
+| `--timeout` | 否 | 等待超时时间（分钟，默认 30），超时后退出码为 2，批次仍在执行 |
+
+**行为说明**：
+
+- 同一店铺的批次严格串行执行，不同店铺可并行
+- 默认提交后轮询批次进度并打印（仅状态变化时输出），直到批次到终态；部分平台（抖店/京东等）的修改为异步提交，等待期间会自动回查平台结果直到真正完成
+- **CLI 单次进程退出会中断正在执行的批次（遗留任务在下次登录时标记取消），`--no-wait` 仅建议在 daemon/REPL 模式下使用**；Ctrl+C 中断等待退出码为 130
+- `-o|--options` 的字段随 `--type` 不同而不同，组装参数前请读取 [BATCH_MODIFY_REFERENCE.md](./BATCH_MODIFY_REFERENCE.md)
+- 平台支持度不一（闲鱼仅支持改标题；得物不支持发货模式/资质/运费模板等），提交不支持的类型会整批失败并写明原因
+
+**修改类型速查表**（`-t|--type` 常用取值，枚举名不区分大小写）：
+
+| 枚举名 | 数值 | 说明 |
+|--------|------|------|
+| `title` | 1 | 改标题 |
+| `price` | 2 | 改价格 |
+| `stock` | 13 | 改库存 |
+| `salestatus` | 11 | 上下架 |
+| `deletegoods` | 10 | 删除商品 |
+| `skuname` | 14 | 改SKU名称 |
+| `deletesku` | 15 | 删除SKU |
+
+全部 28 种类型及其 options 参数见 [BATCH_MODIFY_REFERENCE.md](./BATCH_MODIFY_REFERENCE.md)。
+
+#### `goodsupdate records`
+
+查询批量修改批次记录。**需登录**。
+
+```
+wdjlcli goodsupdate records
+wdjlcli goodsupdate records -s <店铺ID> --page 2 --pagesize 50
+```
+
+| 参数 | 必填 | 说明 |
+|------|------|------|
+| `-s\|--shopid` | 否 | 按店铺过滤 |
+| `--page` | 否 | 页码（默认1） |
+| `--pagesize` | 否 | 每页条数（默认20） |
+
+#### `goodsupdate items`
+
+查询某批次的商品明细。**需登录**。
+
+```
+wdjlcli goodsupdate items -b <批次ID>
+wdjlcli goodsupdate items -b <批次ID> --page 2 --pagesize 50
+```
+
+| 参数 | 必填 | 说明 |
+|------|------|------|
+| `-b\|--batch` | 是 | 批次ID |
+| `--page` | 否 | 页码（默认1） |
+| `--pagesize` | 否 | 每页条数（默认20） |
+
+#### `goodsupdate cancel`
+
+取消批量修改批次。**需登录**。
+
+```
+wdjlcli goodsupdate cancel -b <批次ID>
+```
+
+| 参数 | 必填 | 说明 |
+|------|------|------|
+| `-b\|--batch` | 是 | 批次ID |
+
+**行为说明**：
+
+- 已提交平台的商品不回滚，未执行的明细标记为已取消
+
+#### `goodsupdate retry`
+
+重试批次中失败的明细。**需登录**。
+
+```
+wdjlcli goodsupdate retry -b <批次ID>
+```
+
+| 参数 | 必填 | 说明 |
+|------|------|------|
+| `-b\|--batch` | 是 | 批次ID |
 
 ### 配置管理命令（config）
 
@@ -689,6 +798,29 @@ wdjlcli config set -k shop.freight -s <店铺ID>
 >
 > 任务已提交到上货队列，可用 `wdjlcli publish list --shopid <B店ID>` 查看进度。
 
+### 示例六：批量修改商品价格
+
+> **用户**：把店铺A所有商品价格统一加 5 元。
+>
+> **Agent**：好的，先确认店铺ID，然后用 `goodsupdate submit` 提交批量改价任务。改价参数较长，我写入 `price.json` 文件再用 `--options-file` 传入：
+>
+> ```
+> wdjlcli shop list
+> wdjlcli goodsupdate submit -s <店铺ID> -t price --options-file price.json
+> ```
+>
+> `price.json` 内容（`PriceItem` 表示按货源价加价，`Operator1Mode=0` 表示加金额）：
+>
+> ```
+> {"PriceMode":2,"PriceItem":{"Operator1Mode":0,"Operator1Value":5}}
+> ```
+>
+> 不指定 `-g|--goodsids` 时为全店商品模式；命令默认会轮询批次进度直到完成。中途如需停止，可另开终端执行：
+>
+> ```
+> wdjlcli goodsupdate cancel -b <批次ID>
+> ```
+
 ## 注意事项
 
 1. **浏览器登录**：`shop add` 默认使用二维码控制台模式（控制台渲染二维码图片），用户扫码即可完成登录；若平台不支持二维码登录或添加 `--browser` 参数，则会启动浏览器窗口模式（非无头），需要用户在 GUI 窗口中完成登录。Agent 无法代替用户完成扫码或凭证登录。
@@ -699,7 +831,7 @@ wdjlcli config set -k shop.freight -s <店铺ID>
 
 4. **自动登录**：首次 `login` 成功后，后续启动默认自动登录。如需跳过自动登录，使用 `--no-autologin` 标志。
 
-5. **需登录命令**：`shop *`、`publish *`、`config *` 系列命令均需先完成登录，未登录时执行会提示错误。
+5. **需登录命令**：`shop *`、`publish *`、`config *`、`goodsupdate *` 系列命令均需先完成登录，未登录时执行会提示错误。
 
 6. **交互式操作**：`cat.manual`（类目选择）和 `shop.freight`（运费模板）涉及多级交互选择，Agent 应提示用户需要手动参与。
 
@@ -709,10 +841,14 @@ wdjlcli config set -k shop.freight -s <店铺ID>
 
 9. **店铺互传**：`publish transfer` 要求来源店铺与目标店铺均已添加并登录、且订购未过期；来源与目标店铺不能相同，且只互传在售（上架）商品。抖店互传时 CLI 会自动携带 publishId（publishIdMap），无需手动处理。
 
-9. 当前 CLI 程序按照标准规范实现，输入命令前可先使用 `wdjlcli <command> -h` 或 `wdjlcli <command> --help` 查看命令参数。
+10. **批量修改批次中断**：`goodsupdate submit` 提交的批次在 CLI 单次进程退出时会被中断并标记为退出取消，长任务请使用 daemon/REPL 模式，或保持默认的 `--wait` 等待到批次终态再退出。
+
+11. 当前 CLI 程序按照标准规范实现，输入命令前可先使用 `wdjlcli <command> -h` 或 `wdjlcli <command> --help` 查看命令参数。
 
 ## 上货配置参数参考
 
 详细的上货配置参数说明（商品过滤、基础配置、标题、属性、价格、SKU、图片、水印、平台配置等 12 个类别）请参阅：[CONFIG_REFERENCE.md](./CONFIG_REFERENCE.md)
+
+批量修改参数参考（`goodsupdate submit` 的 `--options` 各类型字段与 JSON 示例）：[BATCH_MODIFY_REFERENCE.md](./BATCH_MODIFY_REFERENCE.md)
 
 当用户需要查询或修改 `config set` 的具体配置项时，请读取该文件获取参数名称、类型、取值范围和 JSON 示例。

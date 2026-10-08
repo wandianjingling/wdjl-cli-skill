@@ -8,6 +8,17 @@
 
 版本类型说明：`新增` / `变更` / `修复` / `移除` / `废弃` / `安全`。
 
+## [1.2.0] - 2026-10-07
+
+### 新增
+
+- 新增 `goodsupdate` 商品批量修改命令组文档（submit / records / items / cancel / retry），submit 含 `--timeout` 等待超时与异步平台结果回查说明
+- 新增 `BATCH_MODIFY_REFERENCE.md`：28 种批量修改类型的 options 参数参考
+
+### 修复
+
+- 修正 SKILL.md 注意事项列表编号重复（两个 9.）
+
 ## [1.1.1] - 2026-10-06
 
 ### 变更
