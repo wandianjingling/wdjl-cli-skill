@@ -130,6 +130,12 @@ wdjlcli shop list
 wdjlcli publish links --url 商品链接 --shopid 店铺ID
 ```
 
+**采集商品到多个店铺（相同链接一次上货到多店）**
+
+```bash
+wdjlcli publish links --url 商品链接 --shopid 店铺ID1,店铺ID2,店铺ID3
+```
+
 **查看待上货列表**
 
 ```bash

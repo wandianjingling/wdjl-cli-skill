@@ -1,6 +1,6 @@
 {
   "app": "wdjlcli",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "万店精灵命令行工具，用于电商多平台店铺管理、商品发布、配置管理等操作",
   "commands": [
     {
@@ -224,7 +224,7 @@
     },
     {
       "name": "publish links",
-      "description": "发布商品（通过URL采集上货）。从指定的商品URL采集商品信息并创建上货任务到目标店铺",
+      "description": "发布商品（通过URL采集上货）。从指定的商品URL采集商品信息并创建上货任务到目标店铺，支持多个目标店铺",
       "type": "publish",
       "requiresLogin": true,
       "options": [
@@ -242,12 +242,22 @@
           "long": "shopid",
           "type": "string",
           "required": false,
-          "description": "目标店铺ID，如不提供则显示店铺列表供选择"
+          "description": "目标店铺ID，多个店铺用逗号分隔（相同链接一次上货到多个店铺），如不提供则显示店铺列表供选择"
+        },
+        {
+          "name": "assigntype",
+          "short": "a",
+          "long": "assigntype",
+          "type": "int",
+          "required": false,
+          "description": "多店铺分配方式：0=重复上货到各店（默认） 1=顺序分配 2=随机平均 3=随机不平均，单店铺时无需指定"
         }
       ],
       "examples": [
         "wdjlcli publish links -u https://detail.tmall.com/item.htm?id=xxx",
-        "wdjlcli publish links -u https://item.taobao.com/item.htm?id=xxx -s shop001"
+        "wdjlcli publish links -u https://item.taobao.com/item.htm?id=xxx -s shop001",
+        "wdjlcli publish links -u https://detail.1688.com/offer/xxx.html -s shop001,shop002,shop003",
+        "wdjlcli publish links -u https://detail.1688.com/offer/xxx.html -s shop001,shop002 -a 1"
       ]
     },
     {

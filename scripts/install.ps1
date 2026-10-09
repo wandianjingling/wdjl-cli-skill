@@ -6,12 +6,15 @@
     同时将安装目录添加到当前用户 PATH。
 .PARAMETER BaseUrl
     发布包根 URL，默认 https://res.wandianjingling.com/wdjlcli/Releases_win-x86
+.PARAMETER IndexBaseUrl
+    更新索引（RELEASES）根 URL，默认 https://res2.wandianjingling.com/wdjlcli/Releases_win-x86
 .PARAMETER Version
     指定版本号。留空则下载最新发布包（目前远程仅将文件放在根目录，无版本子目录）。
 #>
 
 param(
     [string]$BaseUrl = "https://res.wandianjingling.com/wdjlcli/Releases_win-x86",
+    [string]$IndexBaseUrl = "https://res2.wandianjingling.com/wdjlcli/Releases_win-x86",
     [string]$Version = ""
 )
 
@@ -35,11 +38,11 @@ try {
         $DownloadUrl = "$BaseUrl/$Version/wdjlcli-win-Portable.zip"
     }
 
-    # 从 Velopack RELEASES 文件读取最新版本号，用于写入 .version
+    # 从 Velopack RELEASES 文件读取最新版本号（索引从新域名获取），用于写入 .version
     $latestVersion = $Version
     if ([string]::IsNullOrWhiteSpace($latestVersion)) {
         try {
-            $response = Invoke-WebRequest -Uri "$BaseUrl/RELEASES" -UseBasicParsing -ErrorAction SilentlyContinue
+            $response = Invoke-WebRequest -Uri "$IndexBaseUrl/RELEASES" -UseBasicParsing -ErrorAction SilentlyContinue
             $rawContent = $response.Content
             if ($rawContent -is [byte[]]) {
                 $releasesContent = [System.Text.Encoding]::UTF8.GetString($rawContent).Trim()

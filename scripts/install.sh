@@ -5,11 +5,13 @@
 set -euo pipefail
 
 BASE_URL="https://res.wandianjingling.com/wdjlcli/Releases_linux-x64"
+INDEX_BASE_URL="https://res2.wandianjingling.com/wdjlcli/Releases_linux-x64"
 VERSION=""
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --base-url) BASE_URL="$2"; shift ;;
+        --index-base-url) INDEX_BASE_URL="$2"; shift ;;
         --version) VERSION="$2"; shift ;;
         *) echo "[ERROR] 未知参数: $1"; exit 1 ;;
     esac
@@ -135,12 +137,12 @@ fi
 # 写入版本号
 installed_version="$VERSION"
 if [ -z "$installed_version" ]; then
-    # 从 Velopack RELEASES-linux 解析最新版本
+    # 从 Velopack RELEASES-linux 解析最新版本（索引从新域名获取）
     releases_line=""
     if command -v curl >/dev/null 2>&1; then
-        releases_line="$(curl -fsSL "${BASE_URL}/RELEASES-linux" 2>/dev/null | grep -E '^[0-9a-fA-F]+\s+wdjlcli-.+-full\.nupkg' | tail -1)"
+        releases_line="$(curl -fsSL "${INDEX_BASE_URL}/RELEASES-linux" 2>/dev/null | grep -E '^[0-9a-fA-F]+\s+wdjlcli-.+-full\.nupkg' | tail -1)"
     elif command -v wget >/dev/null 2>&1; then
-        releases_line="$(wget -qO- "${BASE_URL}/RELEASES-linux" 2>/dev/null | grep -E '^[0-9a-fA-F]+\s+wdjlcli-.+-full\.nupkg' | tail -1)"
+        releases_line="$(wget -qO- "${INDEX_BASE_URL}/RELEASES-linux" 2>/dev/null | grep -E '^[0-9a-fA-F]+\s+wdjlcli-.+-full\.nupkg' | tail -1)"
     fi
     nupkg_name="$(echo "$releases_line" | awk '{print $2}')"
     tmp="${nupkg_name#wdjlcli-}"

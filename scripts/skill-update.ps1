@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     万店精灵 CLI Skill 更新脚本 (Windows)
 .DESCRIPTION

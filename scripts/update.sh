@@ -13,12 +13,17 @@ success() { echo -e "${GREEN}$*${NC}"; }
 error()   { echo -e "${RED}$*${NC}" >&2; }
 
 BASE_URL="https://res.wandianjingling.com/wdjlcli/Releases_linux-x64"
+INDEX_BASE_URL="https://res2.wandianjingling.com/wdjlcli/Releases_linux-x64"
 VERSION=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --base-url)
             BASE_URL="$2"
+            shift 2
+            ;;
+        --index-base-url)
+            INDEX_BASE_URL="$2"
             shift 2
             ;;
         --version)
@@ -58,7 +63,8 @@ info "当前安装版本: $current_version"
 target_version="$VERSION"
 if [[ -z "$target_version" ]]; then
     info "正在获取最新版本号..."
-    releases_url="$BASE_URL/RELEASES-linux"
+    # 更新索引从新域名获取
+    releases_url="$INDEX_BASE_URL/RELEASES-linux"
     releases_content=""
     if command -v curl &>/dev/null; then
         releases_content="$(curl -fsSL "$releases_url")"

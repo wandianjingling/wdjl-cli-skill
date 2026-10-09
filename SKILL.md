@@ -1,6 +1,6 @@
 ---
 name: wdjlcli
-version: 1.2.0
+version: 1.3.0
 description: 万店精灵 CLI 指令型 Skill，Agent 通过终端执行 wdjlcli 命令与工具交互，不涉及 MCP 调用
 ---
 
@@ -16,7 +16,7 @@ description: 万店精灵 CLI 指令型 Skill，Agent 通过终端执行 wdjlcli
 > - 可执行文件：**Windows** 为 `wdjlcli.exe`，**Linux/macOS** 为 `wdjlcli`（需有执行权限 `chmod +x wdjlcli`）
 > - 可执行文件在 PATH 中或使用绝对路径调用
 >
-> **注意**：wdjlcli 使用 Velopack 作为更新框架。Windows 与 Linux 的 `RELEASES` / `RELEASES-linux` 索引文件及 nupkg 包已可访问，因此**重启时默认会自动检查并应用更新**。如不希望自动更新，可在启动时加上 `--no-autologin` 或手动控制更新时机。
+> **注意**：wdjlcli 使用 Velopack 作为更新框架。更新索引（`releases.*.json`、`RELEASES` / `RELEASES-linux`）从新域名 `res2.wandianjingling.com` 读取，更新包与安装包仍从原域名 `res.wandianjingling.com` 下载，因此**重启时默认会自动检查并应用更新**。如不希望自动更新，可在启动时加上 `--no-autologin` 或手动控制更新时机。
 >
 > **全局标志**：
 > - `--no-autologin`：跳过自动登录流程
@@ -77,7 +77,7 @@ powershell -ExecutionPolicy Bypass -File scripts/update.ps1
 bash scripts/update.sh
 ```
 
-更新脚本会从 Velopack 标准 `RELEASES` / `RELEASES-linux` 文件中解析最新版本号，下载对应平台的发布包并覆盖安装。
+更新脚本会从新域名 `res2.wandianjingling.com` 上的 Velopack 标准 `RELEASES` / `RELEASES-linux` 索引文件中解析最新版本号，再从原域名 `res.wandianjingling.com` 下载对应平台的发布包并覆盖安装。
 
 ### 卸载
 
@@ -105,6 +105,7 @@ bash scripts/uninstall.sh
 | "删除店铺" / "移除店铺" | `wdjlcli shop remove` |
 | "切换到另一个店铺" | `wdjlcli shop switch` |
 | "帮我采集这个链接" / "上货" / "铺货" | `wdjlcli publish links --url <URL>` |
+| "把链接同时上货到多个店铺" / "多店铺货" | `wdjlcli publish links --url <URL> --shopid <店铺ID1,店铺ID2>` |
 | "查看待上传商品" / "上货列表" | `wdjlcli publish list` |
 | "店铺互传" / "店铺搬家" / "把A店商品复制到B店" | `wdjlcli publish transfer --sourceshopid <来源店铺ID> --shopid <目标店铺ID>` |
 | "批量改价" / "批量改标题" / "批量改库存" / "批量修改商品" | `wdjlcli goodsupdate submit -s <店铺ID> -t <类型>` |
@@ -234,17 +235,22 @@ wdjlcli subscribe add
 
 #### `publish links`
 
-创建商品采集上货任务。**需登录**。
+创建商品采集上货任务。**需登录**。支持一次提交把相同链接上货到多个店铺。
 
 ```
 wdjlcli publish links --url <商品链接>
 wdjlcli publish links --url <商品链接> --shopid <店铺ID>
+wdjlcli publish links --url <商品链接> --shopid <店铺ID1,店铺ID2,店铺ID3>
+wdjlcli publish links --url <商品链接1,商品链接2> --shopid <店铺ID1,店铺ID2> --assigntype 1
 ```
 
 | 参数 | 必填 | 说明 |
 |------|------|------|
 | `--url` | 否 | 商品源链接或纯商品ID，支持逗号/分号/空格分隔的多个混合输入，来源平台按链接域名自动识别（1688/淘宝/天猫/拼多多/抖音/京东/快手），不指定则交互式提示输入 |
-| `--shopid` | 否 | 指定目标店铺 ID，不指定则交互式选择当前工作店铺 |
+| `--shopid` | 否 | 指定目标店铺 ID，多个店铺用逗号分隔（相同链接一次上货到多个店铺），不指定则交互式选择当前工作店铺 |
+| `-a\|--assigntype` | 否 | 多店铺分配方式：0=重复上货到各店（默认）、1=顺序分配、2=随机平均、3=随机不平均，单店铺时无需指定 |
+
+> 注意：无效的店铺 ID 会在提交前直接报错；任一目标店铺未登录或订购过期会导致整单拒绝，并在错误信息中列出店铺名。
 
 #### `publish list`
 

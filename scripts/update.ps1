@@ -6,12 +6,15 @@
     更新失败时自动回滚到备份版本。
 .PARAMETER BaseUrl
     发布包根 URL，默认 https://res.wandianjingling.com/wdjlcli/Releases_win-x86
+.PARAMETER IndexBaseUrl
+    更新索引（releases.*.json / RELEASES）根 URL，默认 https://res2.wandianjingling.com/wdjlcli/Releases_win-x86
 .PARAMETER Version
-    指定版本号。留空则自动从 releases.win.json 获取最新版本。
+    指定版本号。留空则自动从 RELEASES 索引文件获取最新版本。
 #>
 
 param(
     [string]$BaseUrl = "https://res.wandianjingling.com/wdjlcli/Releases_win-x86",
+    [string]$IndexBaseUrl = "https://res2.wandianjingling.com/wdjlcli/Releases_win-x86",
     [string]$Version = ""
 )
 
@@ -43,8 +46,8 @@ $targetVersion = $Version
 if ([string]::IsNullOrWhiteSpace($targetVersion)) {
     Write-Info "正在获取最新版本号..."
     try {
-        # 优先读取 Velopack 标准 RELEASES 文件（比 releases.win.json 更可靠）
-        $releasesUrl = "$BaseUrl/RELEASES"
+        # 优先读取 Velopack 标准 RELEASES 文件（比 releases.win.json 更可靠），索引从新域名获取
+        $releasesUrl = "$IndexBaseUrl/RELEASES"
         $response = Invoke-WebRequest -Uri $releasesUrl -UseBasicParsing -ErrorAction Stop
         $rawContent = $response.Content
         # IIS 可能把无扩展名文件当作二进制返回，需要解码
