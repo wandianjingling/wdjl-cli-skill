@@ -26,7 +26,7 @@ function Write-Err     { param([string]$Message); Write-Host $Message -Foregroun
 
 $InstallDir  = "$env:LOCALAPPDATA\wdjlcli"
 $BackupDir   = "$env:LOCALAPPDATA\wdjlcli.bak"
-$TempFile    = "$env:TEMP\wdjlcli-win-Portable.zip"
+$NupkgFile   = "$env:TEMP\wdjlcli-update.nupkg"
 $VersionFile = "$InstallDir\.version"
 
 Write-Info "===== 万店精灵 CLI 更新程序 ====="
@@ -67,6 +67,7 @@ if ([string]::IsNullOrWhiteSpace($targetVersion)) {
             throw "RELEASES 文件格式错误"
         }
         $nupkgName = $parts[1]
+        $nupkgSha1 = $parts[0].TrimStart([char]0xFEFF, ' ', "`t")
         # 从文件名提取版本：
         # wdjlcli-1.0.0-rev738-full.nupkg -> 1.0.0-rev738
         # wdjlcli-1.0.0-rev738-linux-full.nupkg -> 1.0.0-rev738
@@ -102,30 +103,64 @@ Write-Info "正在备份当前安装目录到: $BackupDir"
 Copy-Item -Path $InstallDir -Destination $BackupDir -Recurse -Force
 Write-Success "备份完成。"
 
-# 远程目前把发布文件直接放在 BaseUrl 根目录
-$DownloadUrl = "$BaseUrl/wdjlcli-win-Portable.zip"
-Write-Info "下载地址: $DownloadUrl"
+# 指定版本时未经过 RELEASES 解析，需要构造 nupkg 文件名
+if ([string]::IsNullOrWhiteSpace($nupkgName)) {
+    $nupkgName = "wdjlcli-$targetVersion-full.nupkg"
+}
 
 try {
-    Write-Info "正在下载新版本安装包..."
-    Invoke-WebRequest -Uri $DownloadUrl -OutFile $TempFile -UseBasicParsing -ErrorAction Stop
-    if ((Get-Item $TempFile).Length -eq 0) {
-        throw "下载的文件大小为 0"
+    # 直接下载 RELEASES 中列出的 nupkg（与版本号严格对应，避免固定名 zip 不同步的问题）
+    Write-Info "正在下载新版本安装包: $nupkgName ..."
+    $downloaded = $false
+    foreach ($base in @($IndexBaseUrl, $BaseUrl)) {
+        $DownloadUrl = "$base/$nupkgName"
+        Write-Info "下载地址: $DownloadUrl"
+        try {
+            Invoke-WebRequest -Uri $DownloadUrl -OutFile $NupkgFile -UseBasicParsing -ErrorAction Stop
+            if ((Get-Item $NupkgFile).Length -gt 0) {
+                $downloaded = $true
+                break
+            }
+        } catch {
+            Write-Info "从该地址下载失败，尝试备用地址..."
+        }
+    }
+    if (-not $downloaded) {
+        throw "nupkg 下载失败：所有下载地址均不可用"
     }
     Write-Success "下载完成。"
+
+    # 若 RELEASES 提供了 SHA1，校验下载完整性
+    if (-not [string]::IsNullOrWhiteSpace($nupkgSha1)) {
+        $actualSha1 = (Get-FileHash -Path $NupkgFile -Algorithm SHA1).Hash
+        if ($actualSha1 -ne $nupkgSha1.ToUpper()) {
+            throw "SHA1 校验失败（期望 $nupkgSha1，实际 $actualSha1），安装包可能已损坏"
+        }
+        Write-Success "SHA1 校验通过。"
+    }
 
     Write-Info "清空旧安装目录..."
     Remove-Item -Path $InstallDir -Recurse -Force
     New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
 
-    Write-Info "正在解压新版本..."
-    Expand-Archive -Path $TempFile -DestinationPath $InstallDir -Force -ErrorAction Stop
-    Write-Success "解压完成。"
+    # nupkg 本质是 zip，Expand-Archive 要求 .zip 扩展名，先复制改名再解压
+    Write-Info "正在解压 nupkg 并提取 lib/app ..."
+    $zipCopy   = "$env:TEMP\wdjlcli-update-nupkg.zip"
+    $extractDir = "$env:TEMP\wdjlcli-update-extract"
+    if (Test-Path $extractDir) { Remove-Item -Path $extractDir -Recurse -Force }
+    Copy-Item -Path $NupkgFile -Destination $zipCopy -Force
+    Expand-Archive -Path $zipCopy -DestinationPath $extractDir -Force -ErrorAction Stop
 
-    $exeDir = "$InstallDir\current"
-    if (-not (Test-Path $exeDir)) {
-        throw "解压后未找到 current 目录，发布包结构可能已变更。"
+    $appDir = Join-Path $extractDir "lib\app"
+    if (-not (Test-Path $appDir)) {
+        throw "nupkg 中未找到 lib/app 目录，发布包结构可能已变更。"
     }
+    $exeDir = "$InstallDir\current"
+    New-Item -ItemType Directory -Path $exeDir -Force | Out-Null
+    Copy-Item -Path "$appDir\*" -Destination $exeDir -Recurse -Force
+    Remove-Item -Path $extractDir -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path $zipCopy -Force -ErrorAction SilentlyContinue
+    Write-Success "解压完成。"
 
     $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
     if ($currentPath -notlike "*$exeDir*") {
@@ -158,7 +193,7 @@ try {
     }
     exit 1
 } finally {
-    if (Test-Path $TempFile) {
-        Remove-Item -Path $TempFile -Force -ErrorAction SilentlyContinue
+    if (Test-Path $NupkgFile) {
+        Remove-Item -Path $NupkgFile -Force -ErrorAction SilentlyContinue
     }
 }

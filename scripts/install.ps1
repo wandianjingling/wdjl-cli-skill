@@ -25,20 +25,13 @@ function Write-Info    { param([string]$Message); Write-Host "[INFO] $Message" -
 function Write-Err     { param([string]$Message); Write-Host "[ERROR] $Message" -ForegroundColor Red }
 
 $InstallDir  = "$env:LOCALAPPDATA\wdjlcli"
-$TempFile    = "$env:TEMP\wdjlcli-win-Portable.zip"
+$NupkgFile   = "$env:TEMP\wdjlcli-install.nupkg"
 $VersionFile = "$InstallDir\.version"
 
 Write-Info "===== 万店精灵 CLI 安装程序 ====="
 
 try {
-    # 远程目前把发布文件直接放在 BaseUrl 根目录，没有版本子目录
-    if ([string]::IsNullOrWhiteSpace($Version)) {
-        $DownloadUrl = "$BaseUrl/wdjlcli-win-Portable.zip"
-    } else {
-        $DownloadUrl = "$BaseUrl/$Version/wdjlcli-win-Portable.zip"
-    }
-
-    # 从 Velopack RELEASES 文件读取最新版本号（索引从新域名获取），用于写入 .version
+    # 从 Velopack RELEASES 文件读取最新版本号与 nupkg 文件名（索引从新域名获取）
     $latestVersion = $Version
     if ([string]::IsNullOrWhiteSpace($latestVersion)) {
         try {
@@ -55,6 +48,7 @@ try {
                 $parts = @($latestLine -split "\s+")
                 if ($parts.Count -ge 2) {
                     $nupkgName = $parts[1]
+                    $nupkgSha1 = $parts[0].TrimStart([char]0xFEFF, ' ', "`t")
                     if ($nupkgName -match "wdjlcli-(.+?)-(?:(linux|osx|win)-)?full\.nupkg") {
                         $latestVersion = $Matches[1]
                     }
@@ -65,11 +59,38 @@ try {
         }
     }
 
-    Write-Info "下载地址: $DownloadUrl"
-    Invoke-WebRequest -Uri $DownloadUrl -OutFile $TempFile -UseBasicParsing
+    # 指定版本时未经过 RELEASES 解析，需要构造 nupkg 文件名
+    if ([string]::IsNullOrWhiteSpace($nupkgName)) {
+        $nupkgName = "wdjlcli-$latestVersion-full.nupkg"
+    }
 
-    if ((Get-Item $TempFile).Length -eq 0) {
-        throw "下载的文件大小为 0，请检查网络或远程文件是否存在。"
+    # 直接下载 RELEASES 中列出的 nupkg（与版本号严格对应，避免固定名 zip 不同步的问题）
+    Write-Info "正在下载安装包: $nupkgName ..."
+    $downloaded = $false
+    foreach ($base in @($IndexBaseUrl, $BaseUrl)) {
+        $DownloadUrl = "$base/$nupkgName"
+        Write-Info "下载地址: $DownloadUrl"
+        try {
+            Invoke-WebRequest -Uri $DownloadUrl -OutFile $NupkgFile -UseBasicParsing -ErrorAction Stop
+            if ((Get-Item $NupkgFile).Length -gt 0) {
+                $downloaded = $true
+                break
+            }
+        } catch {
+            Write-Info "从该地址下载失败，尝试备用地址..."
+        }
+    }
+    if (-not $downloaded) {
+        throw "nupkg 下载失败：所有下载地址均不可用，请检查网络或远程文件是否存在。"
+    }
+
+    # 若 RELEASES 提供了 SHA1，校验下载完整性
+    if (-not [string]::IsNullOrWhiteSpace($nupkgSha1)) {
+        $actualSha1 = (Get-FileHash -Path $NupkgFile -Algorithm SHA1).Hash
+        if ($actualSha1 -ne $nupkgSha1.ToUpper()) {
+            throw "SHA1 校验失败（期望 $nupkgSha1，实际 $actualSha1），安装包可能已损坏"
+        }
+        Write-Info "SHA1 校验通过。"
     }
 
     if (Test-Path $InstallDir) {
@@ -78,14 +99,23 @@ try {
         New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
     }
 
-    Write-Info "正在解压安装包..."
-    Expand-Archive -Path $TempFile -DestinationPath $InstallDir -Force
+    # nupkg 本质是 zip，Expand-Archive 要求 .zip 扩展名，先复制改名再解压
+    Write-Info "正在解压 nupkg 并提取 lib/app ..."
+    $zipCopy    = "$env:TEMP\wdjlcli-install-nupkg.zip"
+    $extractDir = "$env:TEMP\wdjlcli-install-extract"
+    if (Test-Path $extractDir) { Remove-Item -Path $extractDir -Recurse -Force }
+    Copy-Item -Path $NupkgFile -Destination $zipCopy -Force
+    Expand-Archive -Path $zipCopy -DestinationPath $extractDir -Force
 
-    # Velopack 便携包结构：实际可执行文件位于 current/ 子目录
-    $exeDir = "$InstallDir\current"
-    if (-not (Test-Path $exeDir)) {
-        throw "解压后未找到 current 目录，发布包结构可能已变更。"
+    $appDir = Join-Path $extractDir "lib\app"
+    if (-not (Test-Path $appDir)) {
+        throw "nupkg 中未找到 lib/app 目录，发布包结构可能已变更。"
     }
+    $exeDir = "$InstallDir\current"
+    New-Item -ItemType Directory -Path $exeDir -Force | Out-Null
+    Copy-Item -Path "$appDir\*" -Destination $exeDir -Recurse -Force
+    Remove-Item -Path $extractDir -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path $zipCopy -Force -ErrorAction SilentlyContinue
 
     $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
     if ($currentPath -notlike "*$exeDir*") {
@@ -108,7 +138,7 @@ try {
     Write-Err "安装失败: $_"
     exit 1
 } finally {
-    if (Test-Path $TempFile) {
-        Remove-Item -Path $TempFile -Force -ErrorAction SilentlyContinue
+    if (Test-Path $NupkgFile) {
+        Remove-Item -Path $NupkgFile -Force -ErrorAction SilentlyContinue
     }
 }
