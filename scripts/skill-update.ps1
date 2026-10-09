@@ -49,7 +49,7 @@ $SkillJson = Join-Path $SkillRoot "skill.json"
 $currentVersion = "unknown"
 if (Test-Path $SkillJson) {
     try {
-        $currentVersion = (Get-Content $SkillJson -Raw | ConvertFrom-Json).version
+        $currentVersion = ([System.IO.File]::ReadAllText($SkillJson, [System.Text.Encoding]::UTF8) | ConvertFrom-Json).version
         if ([string]::IsNullOrWhiteSpace($currentVersion)) { $currentVersion = "unknown" }
     } catch {
         $currentVersion = "unknown"
@@ -99,7 +99,7 @@ try {
     # 重新读取版本
     $newVersion = "unknown"
     if (Test-Path $SkillJson) {
-        try { $newVersion = (Get-Content $SkillJson -Raw | ConvertFrom-Json).version } catch {}
+        try { $newVersion = ([System.IO.File]::ReadAllText($SkillJson, [System.Text.Encoding]::UTF8) | ConvertFrom-Json).version } catch {}
     }
 
     Write-Success ""

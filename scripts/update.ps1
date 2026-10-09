@@ -56,13 +56,13 @@ if ([string]::IsNullOrWhiteSpace($targetVersion)) {
         } else {
             $releasesContent = $rawContent.Trim()
         }
-        $releaseLines = $releasesContent -split "`r?`n" | Where-Object { $_.Trim() -ne "" }
+        $releaseLines = @($releasesContent -split "`r?`n" | Where-Object { $_.Trim() -ne "" })
         if ($releaseLines.Count -eq 0) {
             throw "RELEASES 文件为空"
         }
         # 取最后一行作为最新版本（Velopack RELEASES 按版本顺序排列）
         $latestLine = $releaseLines[-1]
-        $parts = $latestLine -split "\s+"
+        $parts = @($latestLine -split "\s+")
         if ($parts.Count -lt 2) {
             throw "RELEASES 文件格式错误"
         }

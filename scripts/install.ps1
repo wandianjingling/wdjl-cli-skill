@@ -49,10 +49,10 @@ try {
             } else {
                 $releasesContent = $rawContent.Trim()
             }
-            $releaseLines = $releasesContent -split "`r?`n" | Where-Object { $_.Trim() -ne "" }
+            $releaseLines = @($releasesContent -split "`r?`n" | Where-Object { $_.Trim() -ne "" })
             if ($releaseLines.Count -gt 0) {
                 $latestLine = $releaseLines[-1]
-                $parts = $latestLine -split "\s+"
+                $parts = @($latestLine -split "\s+")
                 if ($parts.Count -ge 2) {
                     $nupkgName = $parts[1]
                     if ($nupkgName -match "wdjlcli-(.+?)-(?:(linux|osx|win)-)?full\.nupkg") {
