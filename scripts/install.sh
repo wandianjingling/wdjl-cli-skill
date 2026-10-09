@@ -24,12 +24,6 @@ SYMLINK="$LOCAL_BIN_DIR/wdjlcli"
 APP_IMAGE="$INSTALL_DIR/wdjlcli.AppImage"
 VERSION_FILE="$INSTALL_DIR/.version"
 
-if [ -z "$VERSION" ]; then
-    DOWNLOAD_URL="${BASE_URL}/wdjlcli.AppImage"
-else
-    DOWNLOAD_URL="${BASE_URL}/${VERSION}/wdjlcli.AppImage"
-fi
-
 GREEN='\033[0;32m'
 CYAN='\033[0;36m'
 RED='\033[0;31m'
@@ -81,20 +75,69 @@ check_and_install_fuse() {
 }
 check_and_install_fuse
 
-# 下载文件
-write_info "正在下载: $DOWNLOAD_URL ..."
-TEMP_FILE="$(mktemp /tmp/wdjlcli-XXXXXX.AppImage)"
-if command -v curl >/dev/null 2>&1; then
-    curl -f -sSL "$DOWNLOAD_URL" -o "$TEMP_FILE"
-elif command -v wget >/dev/null 2>&1; then
-    wget -q "$DOWNLOAD_URL" -O "$TEMP_FILE"
-else
-    write_err "未找到 curl 或 wget，无法下载。"
-    exit 1
+# 解析目标版本号（从 Velopack RELEASES-linux 获取最新版本，索引从新域名获取）
+installed_version="$VERSION"
+if [ -z "$installed_version" ]; then
+    write_info "正在获取最新版本号..."
+    releases_line=""
+    if command -v curl >/dev/null 2>&1; then
+        releases_line="$(curl -fsSL "${INDEX_BASE_URL}/RELEASES-linux" 2>/dev/null | grep -E '^[0-9a-fA-F]+[[:space:]]+wdjlcli-.+-full\.nupkg' | tail -1)"
+    elif command -v wget >/dev/null 2>&1; then
+        releases_line="$(wget -qO- "${INDEX_BASE_URL}/RELEASES-linux" 2>/dev/null | grep -E '^[0-9a-fA-F]+[[:space:]]+wdjlcli-.+-full\.nupkg' | tail -1)"
+    fi
+    nupkg_name="$(echo "$releases_line" | awk '{print $2}')"
+    tmp="${nupkg_name#wdjlcli-}"
+    tmp="${tmp%-full.nupkg}"
+    tmp="${tmp%-linux}"
+    tmp="${tmp%-osx}"
+    tmp="${tmp%-win}"
+    if [ -n "$tmp" ]; then
+        installed_version="$tmp"
+    else
+        installed_version="unknown"
+    fi
+    write_info "最新版本: $installed_version"
 fi
 
-if [ ! -s "$TEMP_FILE" ]; then
-    write_err "下载的文件为空，请检查远程文件是否存在。"
+# 候选安装包（按优先级）：带版本号的 AppImage -> 固定名 AppImage（兼容旧发布）
+# CDN 缓存按文件名隔离，版本号命名不受固定名缓存影响
+candidates=("wdjlcli.AppImage")
+if [ -n "$installed_version" ] && [ "$installed_version" != "unknown" ]; then
+    candidates=(
+        "wdjlcli-${installed_version}-linux.AppImage"
+        "wdjlcli-${installed_version}.AppImage"
+        "wdjlcli.AppImage"
+    )
+fi
+
+# 下载文件
+write_info "正在下载安装包..."
+TEMP_FILE="$(mktemp /tmp/wdjlcli-XXXXXX.AppImage)"
+downloaded=false
+for cand in "${candidates[@]}"; do
+    for base in "$INDEX_BASE_URL" "$BASE_URL"; do
+        DOWNLOAD_URL="${base}/${cand}"
+        write_info "下载地址: $DOWNLOAD_URL"
+        if command -v curl >/dev/null 2>&1; then
+            curl -f -sSL "$DOWNLOAD_URL" -o "$TEMP_FILE" || continue
+        elif command -v wget >/dev/null 2>&1; then
+            wget -q "$DOWNLOAD_URL" -O "$TEMP_FILE" || continue
+        else
+            write_err "未找到 curl 或 wget，无法下载。"
+            exit 1
+        fi
+        if [ -s "$TEMP_FILE" ]; then
+            downloaded=true
+            break
+        fi
+    done
+    if [ "$downloaded" = true ]; then
+        break
+    fi
+done
+
+if [ "$downloaded" != true ]; then
+    write_err "下载失败：所有候选地址均不可用，请检查网络或远程文件是否存在。"
     exit 1
 fi
 
@@ -135,27 +178,6 @@ else
 fi
 
 # 写入版本号
-installed_version="$VERSION"
-if [ -z "$installed_version" ]; then
-    # 从 Velopack RELEASES-linux 解析最新版本（索引从新域名获取）
-    releases_line=""
-    if command -v curl >/dev/null 2>&1; then
-        releases_line="$(curl -fsSL "${INDEX_BASE_URL}/RELEASES-linux" 2>/dev/null | grep -E '^[0-9a-fA-F]+\s+wdjlcli-.+-full\.nupkg' | tail -1)"
-    elif command -v wget >/dev/null 2>&1; then
-        releases_line="$(wget -qO- "${INDEX_BASE_URL}/RELEASES-linux" 2>/dev/null | grep -E '^[0-9a-fA-F]+\s+wdjlcli-.+-full\.nupkg' | tail -1)"
-    fi
-    nupkg_name="$(echo "$releases_line" | awk '{print $2}')"
-    tmp="${nupkg_name#wdjlcli-}"
-    tmp="${tmp%-full.nupkg}"
-    tmp="${tmp%-linux}"
-    tmp="${tmp%-osx}"
-    tmp="${tmp%-win}"
-    if [ -n "$tmp" ]; then
-        installed_version="$tmp"
-    else
-        installed_version="unknown"
-    fi
-fi
 echo -n "$installed_version" > "$VERSION_FILE"
 
 write_success "部署完成！运行 'wdjlcli --help' 查看用法。"

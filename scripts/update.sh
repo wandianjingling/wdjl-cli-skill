@@ -118,9 +118,13 @@ info "正在备份当前安装目录到: $BACKUP_DIR"
 cp -a "$INSTALL_DIR" "$BACKUP_DIR"
 success "备份完成。"
 
-# 远程目前把发布文件直接放在 BaseUrl 根目录
-DOWNLOAD_URL="$BASE_URL/wdjlcli.AppImage"
-info "下载地址: $DOWNLOAD_URL"
+# 候选安装包（按优先级）：带版本号的 AppImage -> 固定名 AppImage（兼容旧发布）
+# CDN 缓存按文件名隔离，版本号命名不受固定名缓存影响
+candidates=(
+    "wdjlcli-${target_version}-linux.AppImage"
+    "wdjlcli-${target_version}.AppImage"
+    "wdjlcli.AppImage"
+)
 
 TMP_FILE=""
 cleanup() {
@@ -133,17 +137,31 @@ trap cleanup EXIT
 TMP_FILE="$(mktemp /tmp/wdjlcli-XXXXXX.AppImage)"
 info "正在下载新版本安装包..."
 
-if command -v curl &>/dev/null; then
-    curl -fsSL "$DOWNLOAD_URL" -o "$TMP_FILE"
-elif command -v wget &>/dev/null; then
-    wget -q "$DOWNLOAD_URL" -O "$TMP_FILE"
-else
-    error "未找到 curl 或 wget。"
-    exit 1
-fi
+downloaded=false
+for cand in "${candidates[@]}"; do
+    for base in "$INDEX_BASE_URL" "$BASE_URL"; do
+        DOWNLOAD_URL="$base/$cand"
+        info "下载地址: $DOWNLOAD_URL"
+        if command -v curl &>/dev/null; then
+            curl -fsSL "$DOWNLOAD_URL" -o "$TMP_FILE" || continue
+        elif command -v wget &>/dev/null; then
+            wget -q "$DOWNLOAD_URL" -O "$TMP_FILE" || continue
+        else
+            error "未找到 curl 或 wget。"
+            exit 1
+        fi
+        if [[ -s "$TMP_FILE" ]]; then
+            downloaded=true
+            break
+        fi
+    done
+    if [[ "$downloaded" == "true" ]]; then
+        break
+    fi
+done
 
-if [[ ! -s "$TMP_FILE" ]]; then
-    error "下载的文件为空，请检查远程文件是否存在。"
+if [[ "$downloaded" != "true" ]]; then
+    error "下载失败：所有候选地址均不可用，请检查网络或远程文件是否存在。"
     exit 1
 fi
 

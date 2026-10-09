@@ -25,8 +25,23 @@ function Write-Info    { param([string]$Message); Write-Host "[INFO] $Message" -
 function Write-Err     { param([string]$Message); Write-Host "[ERROR] $Message" -ForegroundColor Red }
 
 $InstallDir  = "$env:LOCALAPPDATA\wdjlcli"
-$NupkgFile   = "$env:TEMP\wdjlcli-install.nupkg"
+$PkgFile     = "$env:TEMP\wdjlcli-install.pkg"
 $VersionFile = "$InstallDir\.version"
+
+# 候选安装包（按优先级）：带版本号的便携包 -> RELEASES 中的 nupkg -> 固定名便携包（兼容旧发布）
+function Get-PackageCandidates([string]$ver, [string]$nupkg) {
+    $list = @()
+    if (-not [string]::IsNullOrWhiteSpace($ver) -and $ver -ne "unknown") {
+        $list += @{ Name = "wdjlcli-$ver-win-Portable.zip"; Type = "zip" }
+    }
+    if (-not [string]::IsNullOrWhiteSpace($nupkg)) {
+        $list += @{ Name = $nupkg; Type = "nupkg" }
+    } elseif (-not [string]::IsNullOrWhiteSpace($ver) -and $ver -ne "unknown") {
+        $list += @{ Name = "wdjlcli-$ver-full.nupkg"; Type = "nupkg" }
+    }
+    $list += @{ Name = "wdjlcli-win-Portable.zip"; Type = "zip" }
+    return $list
+}
 
 Write-Info "===== 万店精灵 CLI 安装程序 ====="
 
@@ -59,34 +74,33 @@ try {
         }
     }
 
-    # 指定版本时未经过 RELEASES 解析，需要构造 nupkg 文件名
-    if ([string]::IsNullOrWhiteSpace($nupkgName)) {
-        $nupkgName = "wdjlcli-$latestVersion-full.nupkg"
-    }
-
-    # 直接下载 RELEASES 中列出的 nupkg（与版本号严格对应，避免固定名 zip 不同步的问题）
-    Write-Info "正在下载安装包: $nupkgName ..."
+    # 按候选清单依次尝试下载（版本号命名优先，CDN 缓存按文件名隔离，不受固定名缓存影响）
     $downloaded = $false
-    foreach ($base in @($IndexBaseUrl, $BaseUrl)) {
-        $DownloadUrl = "$base/$nupkgName"
-        Write-Info "下载地址: $DownloadUrl"
-        try {
-            Invoke-WebRequest -Uri $DownloadUrl -OutFile $NupkgFile -UseBasicParsing -ErrorAction Stop
-            if ((Get-Item $NupkgFile).Length -gt 0) {
-                $downloaded = $true
-                break
+    $pkgType = $null
+    foreach ($cand in (Get-PackageCandidates $latestVersion $nupkgName)) {
+        foreach ($base in @($IndexBaseUrl, $BaseUrl)) {
+            $DownloadUrl = "$base/$($cand.Name)"
+            Write-Info "下载地址: $DownloadUrl"
+            try {
+                Invoke-WebRequest -Uri $DownloadUrl -OutFile $PkgFile -UseBasicParsing -ErrorAction Stop
+                if ((Get-Item $PkgFile).Length -gt 0) {
+                    $downloaded = $true
+                    $pkgType = $cand.Type
+                    break
+                }
+            } catch {
+                Write-Info "该地址不可用，尝试下一个..."
             }
-        } catch {
-            Write-Info "从该地址下载失败，尝试备用地址..."
         }
+        if ($downloaded) { break }
     }
     if (-not $downloaded) {
-        throw "nupkg 下载失败：所有下载地址均不可用，请检查网络或远程文件是否存在。"
+        throw "安装包下载失败：所有候选地址均不可用，请检查网络或远程文件是否存在。"
     }
 
-    # 若 RELEASES 提供了 SHA1，校验下载完整性
-    if (-not [string]::IsNullOrWhiteSpace($nupkgSha1)) {
-        $actualSha1 = (Get-FileHash -Path $NupkgFile -Algorithm SHA1).Hash
+    # 若下载的是 RELEASES 中列出的 nupkg，用其 SHA1 校验完整性
+    if ($pkgType -eq "nupkg" -and -not [string]::IsNullOrWhiteSpace($nupkgSha1)) {
+        $actualSha1 = (Get-FileHash -Path $PkgFile -Algorithm SHA1).Hash
         if ($actualSha1 -ne $nupkgSha1.ToUpper()) {
             throw "SHA1 校验失败（期望 $nupkgSha1，实际 $actualSha1），安装包可能已损坏"
         }
@@ -99,21 +113,32 @@ try {
         New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
     }
 
-    # nupkg 本质是 zip，Expand-Archive 要求 .zip 扩展名，先复制改名再解压
-    Write-Info "正在解压 nupkg 并提取 lib/app ..."
-    $zipCopy    = "$env:TEMP\wdjlcli-install-nupkg.zip"
+    # zip/nupkg 都用 Expand-Archive 解压（nupkg 本质是 zip，需先改为 .zip 扩展名）
+    Write-Info "正在解压安装包 ($pkgType) ..."
+    $zipCopy    = "$env:TEMP\wdjlcli-install-pkg.zip"
     $extractDir = "$env:TEMP\wdjlcli-install-extract"
     if (Test-Path $extractDir) { Remove-Item -Path $extractDir -Recurse -Force }
-    Copy-Item -Path $NupkgFile -Destination $zipCopy -Force
+    Copy-Item -Path $PkgFile -Destination $zipCopy -Force
     Expand-Archive -Path $zipCopy -DestinationPath $extractDir -Force
 
-    $appDir = Join-Path $extractDir "lib\app"
-    if (-not (Test-Path $appDir)) {
-        throw "nupkg 中未找到 lib/app 目录，发布包结构可能已变更。"
+    if ($pkgType -eq "nupkg") {
+        # nupkg 结构：应用文件位于 lib/app
+        $appDir = Join-Path $extractDir "lib\app"
+        if (-not (Test-Path $appDir)) {
+            throw "nupkg 中未找到 lib/app 目录，发布包结构可能已变更。"
+        }
+        $exeDir = "$InstallDir\current"
+        New-Item -ItemType Directory -Path $exeDir -Force | Out-Null
+        Copy-Item -Path "$appDir\*" -Destination $exeDir -Recurse -Force
+    } else {
+        # 便携 zip 结构：实际可执行文件位于 current/ 子目录
+        $appDir = Join-Path $extractDir "current"
+        if (-not (Test-Path $appDir)) {
+            throw "便携包中未找到 current 目录，发布包结构可能已变更。"
+        }
+        Copy-Item -Path $appDir -Destination $InstallDir -Recurse -Force
+        $exeDir = "$InstallDir\current"
     }
-    $exeDir = "$InstallDir\current"
-    New-Item -ItemType Directory -Path $exeDir -Force | Out-Null
-    Copy-Item -Path "$appDir\*" -Destination $exeDir -Recurse -Force
     Remove-Item -Path $extractDir -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item -Path $zipCopy -Force -ErrorAction SilentlyContinue
 
@@ -138,7 +163,7 @@ try {
     Write-Err "安装失败: $_"
     exit 1
 } finally {
-    if (Test-Path $NupkgFile) {
-        Remove-Item -Path $NupkgFile -Force -ErrorAction SilentlyContinue
+    if (Test-Path $PkgFile) {
+        Remove-Item -Path $PkgFile -Force -ErrorAction SilentlyContinue
     }
 }
