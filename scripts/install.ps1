@@ -28,7 +28,8 @@ $InstallDir  = "$env:LOCALAPPDATA\wdjlcli"
 $PkgFile     = "$env:TEMP\wdjlcli-install.pkg"
 $VersionFile = "$InstallDir\.version"
 
-# 候选安装包（按优先级）：带版本号的便携包 -> RELEASES 中的 nupkg -> 固定名便携包（兼容旧发布）
+# 候选安装包（按优先级）：带版本号的便携包 -> RELEASES 中的 nupkg
+# 不再回退到固定名便携包：固定名会被 CDN 边缘节点长期缓存，容易装到旧版本
 function Get-PackageCandidates([string]$ver, [string]$nupkg) {
     $list = @()
     if (-not [string]::IsNullOrWhiteSpace($ver) -and $ver -ne "unknown") {
@@ -39,7 +40,6 @@ function Get-PackageCandidates([string]$ver, [string]$nupkg) {
     } elseif (-not [string]::IsNullOrWhiteSpace($ver) -and $ver -ne "unknown") {
         $list += @{ Name = "wdjlcli-$ver-full.nupkg"; Type = "nupkg" }
     }
-    $list += @{ Name = "wdjlcli-win-Portable.zip"; Type = "zip" }
     return $list
 }
 
@@ -58,19 +58,24 @@ try {
                 $releasesContent = $rawContent.Trim()
             }
             $releaseLines = @($releasesContent -split "`r?`n" | Where-Object { $_.Trim() -ne "" })
-            if ($releaseLines.Count -gt 0) {
-                $latestLine = $releaseLines[-1]
-                $parts = @($latestLine -split "\s+")
-                if ($parts.Count -ge 2) {
-                    $nupkgName = $parts[1]
-                    $nupkgSha1 = $parts[0].TrimStart([char]0xFEFF, ' ', "`t")
-                    if ($nupkgName -match "wdjlcli-(.+?)-(?:(linux|osx|win)-)?full\.nupkg") {
-                        $latestVersion = $Matches[1]
-                    }
-                }
+            if ($releaseLines.Count -eq 0) {
+                throw "RELEASES 文件为空"
+            }
+            $latestLine = $releaseLines[-1]
+            $parts = @($latestLine -split "\s+")
+            if ($parts.Count -lt 2) {
+                throw "RELEASES 文件格式错误"
+            }
+            $nupkgName = $parts[1]
+            $nupkgSha1 = $parts[0].TrimStart([char]0xFEFF, ' ', "`t")
+            if ($nupkgName -match "wdjlcli-(.+?)-(?:(linux|osx|win)-)?full\.nupkg") {
+                $latestVersion = $Matches[1]
+            } else {
+                throw "无法从文件名解析版本: $nupkgName"
             }
         } catch {
-            $latestVersion = "unknown"
+            Write-Err "获取最新版本号失败: $_"
+            exit 1
         }
     }
 

@@ -94,21 +94,19 @@ if [ -z "$installed_version" ]; then
     if [ -n "$tmp" ]; then
         installed_version="$tmp"
     else
-        installed_version="unknown"
+        write_err "无法从 RELEASES-linux 索引解析最新版本号，请检查网络或索引文件是否可用。"
+        exit 1
     fi
     write_info "最新版本: $installed_version"
 fi
 
-# 候选安装包（按优先级）：带版本号的 AppImage -> 固定名 AppImage（兼容旧发布）
-# CDN 缓存按文件名隔离，版本号命名不受固定名缓存影响
-candidates=("wdjlcli.AppImage")
-if [ -n "$installed_version" ] && [ "$installed_version" != "unknown" ]; then
-    candidates=(
-        "wdjlcli-${installed_version}-linux.AppImage"
-        "wdjlcli-${installed_version}.AppImage"
-        "wdjlcli.AppImage"
-    )
-fi
+# 候选安装包（按优先级）：带版本号的 AppImage
+# CDN 缓存按文件名隔离，版本号命名不受固定名缓存影响；
+# 不再回退到固定名 AppImage（固定名会被 CDN 边缘节点长期缓存，容易装到旧版本）
+candidates=(
+    "wdjlcli-${installed_version}-linux.AppImage"
+    "wdjlcli-${installed_version}.AppImage"
+)
 
 # 下载文件
 write_info "正在下载安装包..."

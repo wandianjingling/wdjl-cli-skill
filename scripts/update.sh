@@ -118,12 +118,12 @@ info "正在备份当前安装目录到: $BACKUP_DIR"
 cp -a "$INSTALL_DIR" "$BACKUP_DIR"
 success "备份完成。"
 
-# 候选安装包（按优先级）：带版本号的 AppImage -> 固定名 AppImage（兼容旧发布）
-# CDN 缓存按文件名隔离，版本号命名不受固定名缓存影响
+# 候选安装包（按优先级）：带版本号的 AppImage
+# CDN 缓存按文件名隔离，版本号命名不受固定名缓存影响；
+# 不再回退到固定名 AppImage（固定名会被 CDN 边缘节点长期缓存，容易装到旧版本）
 candidates=(
     "wdjlcli-${target_version}-linux.AppImage"
     "wdjlcli-${target_version}.AppImage"
-    "wdjlcli.AppImage"
 )
 
 TMP_FILE=""

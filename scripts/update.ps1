@@ -29,7 +29,8 @@ $BackupDir   = "$env:LOCALAPPDATA\wdjlcli.bak"
 $PkgFile     = "$env:TEMP\wdjlcli-update.pkg"
 $VersionFile = "$InstallDir\.version"
 
-# 候选安装包（按优先级）：带版本号的便携包 -> RELEASES 中的 nupkg -> 固定名便携包（兼容旧发布）
+# 候选安装包（按优先级）：带版本号的便携包 -> RELEASES 中的 nupkg
+# 不再回退到固定名便携包：固定名会被 CDN 边缘节点长期缓存，容易装到旧版本
 function Get-PackageCandidates([string]$ver, [string]$nupkg) {
     $list = @()
     if (-not [string]::IsNullOrWhiteSpace($ver) -and $ver -ne "unknown") {
@@ -40,7 +41,6 @@ function Get-PackageCandidates([string]$ver, [string]$nupkg) {
     } elseif (-not [string]::IsNullOrWhiteSpace($ver) -and $ver -ne "unknown") {
         $list += @{ Name = "wdjlcli-$ver-full.nupkg"; Type = "nupkg" }
     }
-    $list += @{ Name = "wdjlcli-win-Portable.zip"; Type = "zip" }
     return $list
 }
 
