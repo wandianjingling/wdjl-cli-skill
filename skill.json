@@ -120,25 +120,6 @@
       ]
     },
     {
-      "name": "shop switch",
-      "description": "切换当前操作的店铺。切换后，后续操作（如发布商品、配置管理）将针对该店铺执行",
-      "type": "shop",
-      "requiresLogin": true,
-      "arguments": [
-        {
-          "name": "shopid",
-          "position": 0,
-          "type": "string",
-          "required": true,
-          "description": "要切换到的目标店铺ID"
-        }
-      ],
-      "options": [],
-      "examples": [
-        "wdjlcli shop switch shop001"
-      ]
-    },
-    {
       "name": "config list",
       "description": "列出所有配置项，可按店铺筛选",
       "type": "config",
@@ -407,7 +388,7 @@
           "long": "filter",
           "type": "string",
           "required": false,
-          "description": "全店模式的筛选条件JSON（透传 QueryFilter）"
+          "description": "全店模式的筛选条件JSON（透传 QueryFilter），字段与 GoodsListRequest 一致（如 status/name/cids/pricemin/pricemax，不含分页），兼容旧字段名 goodsstatus/categoryid/searchfield/keyword"
         },
         {
           "name": "options",
@@ -620,7 +601,7 @@
   },
   "commandCategories": {
     "auth": { "description": "身份认证相关命令", "commands": ["login", "logout", "status"] },
-    "shop": { "description": "店铺管理相关命令", "commands": ["shop list", "shop add", "shop remove", "shop switch"] },
+    "shop": { "description": "店铺管理相关命令", "commands": ["shop list", "shop add", "shop remove"] },
     "config": { "description": "配置管理相关命令", "commands": ["config list", "config get", "config set"] },
     "publish": { "description": "商品发布相关命令", "commands": ["publish links", "publish list", "publish datapacket", "publish transfer"] },
     "goodsupdate": { "description": "商品批量修改相关命令", "commands": ["goodsupdate submit", "goodsupdate records", "goodsupdate items", "goodsupdate cancel", "goodsupdate retry"] },

@@ -103,7 +103,6 @@ bash scripts/uninstall.sh
 | "我有哪些店铺？" / "店铺列表" | `wdjlcli shop list` |
 | "添加一个淘宝店铺" / "绑定店铺" | `wdjlcli shop add taobao` |
 | "删除店铺" / "移除店铺" | `wdjlcli shop remove` |
-| "切换到另一个店铺" | `wdjlcli shop switch` |
 | "帮我采集这个链接" / "上货" / "铺货" | `wdjlcli publish links --url <URL>` |
 | "把链接同时上货到多个店铺" / "多店铺货" | `wdjlcli publish links --url <URL> --shopid <店铺ID1,店铺ID2>` |
 | "查看待上传商品" / "上货列表" | `wdjlcli publish list` |
@@ -209,18 +208,6 @@ wdjlcli shop add taobao --browser
 wdjlcli shop remove
 ```
 
-#### `shop switch`
-
-切换当前工作店铺。**需登录**。需要显式传入ShopID参数。
-
-```
-wdjlcli shop switch <shopId>
-```
-
-示例：
-```
-wdjlcli shop switch 157889500
-```
 ### 订购命令
 
 #### `subscribe add`
@@ -329,7 +316,7 @@ wdjlcli goodsupdate submit -s <店铺ID> -t stock --filter '{"SaleStatus":1}' -o
 | `-t\|--type` | 是 | 修改类型，支持枚举名（不区分大小写，如 `title`、`price`、`stock`）或数值（如 `1`、`2`、`13`），取值见下方修改类型速查表 |
 | `-g\|--goodsids` | 否 | 商品ID，逗号分隔；指定后为"指定商品"模式；不指定则为"全店商品"模式（按 `--filter` 筛选） |
 | `--exclude` | 否 | 全店模式下排除的商品ID，逗号分隔 |
-| `--filter` | 否 | 全店模式的筛选条件 JSON（透传 QueryFilter） |
+| `--filter` | 否 | 全店模式的筛选条件 JSON（透传 QueryFilter），字段与店铺商品列表查询 `GoodsListRequest` 一致（大小写不敏感，不含分页），如 `{"status":1,"name":"关键词","cids":["123"],"pricemin":10,"pricemax":100}`；兼容旧字段名 `goodsstatus`/`categoryid`/`searchfield`/`keyword` |
 | `-o\|--options` | 否 | 修改参数 JSON 字符串，字段随 `--type` 不同，详见 [BATCH_MODIFY_REFERENCE.md](./BATCH_MODIFY_REFERENCE.md) |
 | `--options-file` | 否 | 从 JSON 文件读取修改参数（与 `-o` 二选一；Windows PowerShell 下长 JSON 转义困难时推荐） |
 | `--no-wait` | 否 | 提交后不等待完成立即退出 |
@@ -641,13 +628,13 @@ D:\work\code\gjx\CyjWork\wdjlcli\bin\Debug\net8.0\win-x64\wdjlcli.exe <命令>
 /path/to/wdjlcli/bin/Debug/net8.0/osx-arm64/wdjlcli <命令> -->
 ```
 
-### 2. 店铺切换失败
+### 2. 店铺相关命令必须指定店铺
 
-**问题**：`shop switch` 交互式选择失败
+**问题**：CLI 没有"当前店铺"概念，店铺相关命令需显式指定店铺
 
-**解决**：直接传入ShopID参数
+**解决**：通过 `-s|--shopid` 参数传入店铺ID；不传时会打印店铺列表并交互提示输入
 ```
-wdjlcli shop switch <shopId>
+wdjlcli publish list -s <shopId>
 ```
 
 ### 3. 上货失败 - 没有匹配到类目
@@ -843,7 +830,7 @@ wdjlcli config set -k shop.freight -s <店铺ID>
 
 7. **属性配置**：遇到属性匹配失败时，优先使用 `AttrAutoFillRequired = true` 开启自动填充，而不是手动配置JSON映射（PowerShell传递中文JSON有编码问题）。
 
-8. **店铺切换**：`shop switch` 必须显式传入ShopID参数，不支持交互式选择。
+8. **店铺指定**：CLI 无"当前店铺"概念（`shop switch` 已移除），店铺相关命令必须通过 `-s|--shopid` 显式传入店铺ID，未传入时会交互提示输入。
 
 9. **店铺互传**：`publish transfer` 要求来源店铺与目标店铺均已添加并登录、且订购未过期；来源与目标店铺不能相同，且只互传在售（上架）商品。抖店互传时 CLI 会自动携带 publishId（publishIdMap），无需手动处理。
 
